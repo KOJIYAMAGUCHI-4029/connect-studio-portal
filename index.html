@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>CONNECT Studio - 状態保持デモ v3</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+    background: #EAE5DA; padding: 24px; min-height: 100vh; color: #2C2C2A;
+  }
+  .frame {
+    max-width: 1200px; margin: 0 auto;
+    background: #FAF7F2; border-radius: 12px;
+    border: 0.5px solid #D3D1C7; overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  }
+  .topbar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 20px; background: #FFFEFA;
+    border-bottom: 0.5px solid #D3D1C7;
+  }
+  .logo-group { display: flex; align-items: center; gap: 12px; }
+  .logo-img { width: 36px; height: 36px; object-fit: contain; }
+  .brand-line { display: flex; align-items: baseline; gap: 10px; }
+  .brand-name { font-size: 15px; font-weight: 500; letter-spacing: 0.02em; }
+  .brand-tagline { font-size: 11px; color: #888780; font-style: italic; }
+  .top-right { display: flex; align-items: center; gap: 14px; }
+  .date { font-size: 13px; color: #5F5E5A; }
+  .avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: #FAEEDA; border: 0.5px solid #EF9F27;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 500; color: #854F0B;
+  }
+
+  .body-grid { display: grid; grid-template-columns: 180px 1fr 220px; min-height: 620px; }
+
+  /* 左サイド */
+  .sidebar-left {
+    background: #F5F1E8; border-right: 0.5px solid #D3D1C7;
+    padding: 16px 10px; display: flex; flex-direction: column; gap: 3px;
+  }
+  .section-label { margin: 4px 8px 8px; font-size: 10px; color: #888780; letter-spacing: 0.05em; }
+  .section-label.spaced { margin-top: 18px; }
+  .nav-item {
+    border-radius: 6px; padding: 8px 10px;
+    display: flex; align-items: center; gap: 9px;
+    cursor: pointer; transition: background 0.15s;
+    position: relative;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.5); }
+  .nav-item.active { background: #FFFEFA; border: 0.5px solid #BA7517; }
+  .nav-item.active[data-pane="claude"] { border-color: #534AB7; }
+  .nav-icon {
+    width: 22px; height: 22px; border-radius: 5px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .nav-label { flex: 1; font-size: 12px; }
+  .nav-label.active { font-weight: 500; }
+  .nav-label.muted { color: #5F5E5A; }
+  .badge-num { font-size: 10px; padding: 1px 6px; border-radius: 8px; font-weight: 500; }
+  .badge-hot { background: #F0997B; color: #4A1B0C; }
+  .badge-mute { background: #F1EFE8; color: #5F5E5A; }
+  .badge-new { background: #C0DD97; color: #173404; }
+  /* 動作中インジケータ */
+  .working-dot {
+    position: absolute; top: 6px; right: 6px;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #BA7517;
+    animation: pulse 1.4s ease-in-out infinite;
+    display: none;
+  }
+  .nav-item.working .working-dot { display: block; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(1.4); }
+  }
+
+  /* メイン */
+  .main-area { display: grid; grid-template-rows: auto 1fr; min-width: 0; }
+  .breadcrumb {
+    padding: 14px 18px; border-bottom: 0.5px solid #D3D1C7;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .breadcrumb-text { display: flex; align-items: baseline; gap: 8px; }
+  .breadcrumb-text h2 { font-size: 14px; font-weight: 500; }
+  .breadcrumb-path { font-size: 11px; color: #888780; }
+  .building-badge { font-size: 10px; padding: 3px 9px; border-radius: 10px; font-weight: 500; }
+  .badge-building { background: #F0997B; color: #4A1B0C; }
+  .badge-borrowed { background: #F1EFE8; color: #5F5E5A; }
+  .badge-beta { background: #C0DD97; color: #173404; }
+
+  .pane { display: none; height: 100%; }
+  .pane.active { display: block; }
+
+  /* === Claude チャット === */
+  .chat-area { display: grid; grid-template-rows: 1fr auto auto; height: 100%; }
+  .chat-messages { padding: 20px 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; max-height: 460px; }
+  .chat-msg { max-width: 80%; }
+  .chat-msg.user { align-self: flex-end; }
+  .chat-msg-bubble { padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.7; }
+  .chat-msg.user .chat-msg-bubble { background: #2C2C2A; color: #FAF7F2; border-bottom-right-radius: 4px; }
+  .chat-msg.assistant .chat-msg-bubble { background: #FFFEFA; border: 0.5px solid #D3D1C7; border-bottom-left-radius: 4px; }
+  .chat-msg-meta { font-size: 10px; color: #888780; margin-bottom: 4px; padding: 0 4px; }
+  .chat-msg.user .chat-msg-meta { text-align: right; }
+  .chat-suggestions { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 24px 12px; }
+  .chat-suggestion {
+    font-size: 11px; padding: 5px 10px;
+    border: 0.5px dashed #B4B2A9; border-radius: 14px;
+    background: transparent; color: #5F5E5A;
+    cursor: pointer; font-family: inherit; transition: all 0.15s;
+  }
+  .chat-suggestion:hover { background: #F5F1E8; border-style: solid; }
+  .chat-input-area {
+    padding: 12px 16px; border-top: 0.5px solid #D3D1C7;
+    background: #FFFEFA; display: flex; gap: 10px; align-items: flex-end;
+  }
+  .chat-input {
+    flex: 1; min-height: 40px; max-height: 120px;
+    padding: 10px 14px; border: 0.5px solid #B4B2A9; border-radius: 8px;
+    font-family: inherit; font-size: 13px;
+    background: #FAF7F2; color: #2C2C2A;
+    resize: none; outline: none; transition: border-color 0.15s;
+  }
+  .chat-input:focus { border-color: #534AB7; }
+  .chat-send {
+    padding: 10px 16px; background: #2C2C2A; color: #FAF7F2;
+    border: none; border-radius: 8px;
+    font-family: inherit; font-size: 12px; font-weight: 500;
+    cursor: pointer; transition: opacity 0.15s;
+  }
+  .chat-send:hover { opacity: 0.85; }
+
+  /* === Mail === */
+  .mail-grid { display: grid; grid-template-columns: 220px 1fr; min-width: 0; height: 100%; }
+  .mail-list { border-right: 0.5px solid #D3D1C7; overflow-y: auto; }
+  .mail-item { padding: 10px 14px; border-bottom: 0.5px solid #F1EFE8; cursor: pointer; transition: background 0.15s; }
+  .mail-item:hover { background: #FFFEFA; }
+  .mail-item.active { background: #FFFEFA; border-left: 3px solid #BA7517; padding-left: 11px; }
+  .mail-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px; }
+  .mail-from { font-size: 12px; font-weight: 500; }
+  .mail-from.read { color: #5F5E5A; }
+  .mail-time { font-size: 10px; color: #888780; }
+  .mail-preview { font-size: 11px; color: #5F5E5A; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mail-preview.read { color: #888780; }
+  .mail-tag { display: inline-block; margin-top: 4px; font-size: 9px; padding: 1px 6px; border-radius: 6px; }
+  .tag-todo { background: #FAEEDA; color: #854F0B; }
+  .tag-recruit { background: #EEEDFE; color: #3C3489; }
+  .tag-done { background: #EAF3DE; color: #173404; }
+
+  .mail-body { padding: 18px 22px; min-width: 0; overflow-y: auto; }
+  .mail-header { margin-bottom: 14px; padding-bottom: 14px; border-bottom: 0.5px solid #F1EFE8; }
+  .mail-subject { font-size: 15px; font-weight: 500; margin-bottom: 8px; }
+  .mail-meta { display: flex; align-items: center; gap: 10px; }
+  .mail-avatar { width: 24px; height: 24px; border-radius: 50%; background: #E1F5EE; color: #0F6E56; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; }
+  .mail-sender { font-size: 12px; }
+  .mail-sender .email { color: #888780; }
+  .mail-datetime { margin-left: auto; font-size: 11px; color: #888780; }
+  .mail-content { font-size: 13px; line-height: 1.85; color: #2C2C2A; }
+  .mail-content p { margin-bottom: 11px; }
+  .mail-content .signature { color: #888780; }
+  .mail-actions { margin-top: 18px; padding-top: 14px; border-top: 0.5px dashed #B4B2A9; display: flex; gap: 8px; }
+  .mail-actions button {
+    font-size: 12px; padding: 6px 12px;
+    border: 0.5px solid #B4B2A9; border-radius: 6px;
+    background: #FFFEFA; color: #2C2C2A;
+    cursor: pointer; font-family: inherit; transition: all 0.15s;
+  }
+  .mail-actions button:hover { background: #F5F1E8; }
+  .mail-actions button.primary { margin-left: auto; }
+  .mail-actions button.done { background: #EAF3DE; border-color: #639922; color: #173404; }
+
+  /* === 履歴書変換ツール === */
+  .resume-area { padding: 22px 24px; height: 100%; overflow-y: auto; }
+  .resume-section-title { font-size: 13px; font-weight: 500; margin-bottom: 12px; color: #2C2C2A; }
+  .upload-zone {
+    border: 1.5px dashed #B4B2A9; border-radius: 8px;
+    padding: 28px 20px; text-align: center;
+    background: #FFFEFA; cursor: pointer;
+    transition: all 0.15s; margin-bottom: 22px;
+  }
+  .upload-zone:hover { border-color: #BA7517; background: #FAEEDA40; }
+  .upload-icon { margin-bottom: 8px; }
+  .upload-text { font-size: 13px; color: #5F5E5A; margin-bottom: 4px; }
+  .upload-hint { font-size: 11px; color: #888780; }
+  .demo-btn {
+    margin-top: 12px; padding: 6px 14px;
+    background: #FAC775; border: 0.5px solid #BA7517;
+    border-radius: 6px; font-size: 11px; font-weight: 500;
+    color: #412402; cursor: pointer; font-family: inherit;
+  }
+  .demo-btn:hover { background: #EF9F27; }
+
+  .file-list { display: flex; flex-direction: column; gap: 8px; }
+  .file-item {
+    background: #FFFEFA; border: 0.5px solid #D3D1C7;
+    border-radius: 8px; padding: 12px 14px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .file-icon {
+    width: 32px; height: 32px; border-radius: 6px;
+    background: #F0997B; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .file-info { flex: 1; min-width: 0; }
+  .file-name { font-size: 12px; font-weight: 500; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-status { font-size: 11px; color: #888780; }
+  .file-progress-wrap {
+    height: 4px; background: #F1EFE8; border-radius: 2px;
+    overflow: hidden; margin-top: 6px;
+  }
+  .file-progress {
+    height: 100%; background: #BA7517;
+    border-radius: 2px; transition: width 0.3s;
+  }
+  .file-progress.done { background: #639922; }
+  .file-action {
+    font-size: 11px; padding: 5px 10px;
+    border: 0.5px solid #B4B2A9; border-radius: 6px;
+    background: #FFFEFA; color: #2C2C2A;
+    cursor: pointer; font-family: inherit;
+  }
+  .file-action.disabled { opacity: 0.4; cursor: not-allowed; }
+  .file-action:not(.disabled):hover { background: #F5F1E8; }
+
+  /* 右サイド */
+  .sidebar-right { background: #F5F1E8; border-left: 0.5px solid #D3D1C7; padding: 16px 14px; display: flex; flex-direction: column; gap: 18px; }
+  .panel-title { font-size: 12px; font-weight: 500; margin-bottom: 10px; }
+  .panel-eyebrow { font-size: 10px; color: #888780; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .note-box { font-size: 11px; line-height: 1.65; }
+  .schedule-list { display: flex; flex-direction: column; gap: 10px; }
+  .schedule-item { padding-left: 10px; border-left: 2px solid; }
+  .schedule-item.amber { border-color: #BA7517; }
+  .schedule-item.purple { border-color: #534AB7; }
+  .schedule-item.teal { border-color: #0F6E56; }
+  .schedule-item.gray { border-color: #888780; }
+  .schedule-time { font-size: 10px; color: #5F5E5A; font-variant-numeric: tabular-nums; }
+  .schedule-title { font-size: 11px; font-weight: 500; }
+  .log-list { display: flex; flex-direction: column; gap: 10px; }
+  .log-item { display: flex; gap: 7px; }
+  .log-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+  .log-dot.amber { background: #BA7517; }
+  .log-dot.green { background: #639922; }
+  .log-dot.purple { background: #534AB7; }
+  .log-time { font-size: 10px; color: #888780; }
+  .log-text { font-size: 11px; line-height: 1.45; }
+
+  .footer { padding: 10px 20px; background: #FFFEFA; border-top: 0.5px dashed #B4B2A9; display: flex; justify-content: space-between; align-items: center; }
+  .footer-text { font-size: 11px; color: #888780; font-style: italic; }
+  .footer-note { font-size: 11px; color: #5F5E5A; }
+
+  .caption { max-width: 1200px; margin: 16px auto 0; font-size: 12px; color: #5F5E5A; text-align: center; line-height: 1.7; }
+  .caption strong { color: #2C2C2A; }
+</style>
+</head>
+<body>
+
+<div class="frame">
+
+  <div class="topbar">
+    <div class="logo-group">
+      <img src="data:image/png;base64,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" alt="CONNECT" class="logo-img">
+      <div class="brand-line">
+        <span class="brand-name">CONNECT Studio</span>
+        <span class="brand-tagline">— 自分たちのものは、自分たちで。</span>
+      </div>
+    </div>
+    <div class="top-right">
+      <span class="date">2026.04.27 月</span>
+      <div class="avatar">YK</div>
+    </div>
+  </div>
+
+  <div class="body-grid">
+
+    <!-- 左サイド -->
+    <div class="sidebar-left">
+      <p class="section-label">私たちが作ったもの</p>
+
+      <div class="nav-item" data-pane="mail" onclick="switchPane('mail')">
+        <div class="nav-icon" style="background: #FAC775;">
+          <svg width="12" height="12" viewBox="0 0 18 18" fill="none">
+            <rect x="2" y="4" width="14" height="10" rx="1.5" stroke="#412402" stroke-width="1.8"/>
+            <path d="M2 5l7 5 7-5" stroke="#412402" stroke-width="1.8"/>
+          </svg>
+        </div>
+        <span class="nav-label">Mail</span>
+        <span class="badge-num badge-hot" id="mail-badge">23</span>
+        <div class="working-dot"></div>
+      </div>
+
+      <div class="nav-item" data-pane="resume" onclick="switchPane('resume')">
+        <div class="nav-icon" style="background: #F0997B;">
+          <svg width="12" height="12" viewBox="0 0 18 18" fill="none">
+            <path d="M5 2h6l3 3v11H5V2z" stroke="#4A1B0C" stroke-width="1.8" stroke-linejoin="round"/>
+            <path d="M11 2v3h3" stroke="#4A1B0C" stroke-width="1.8" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <span class="nav-label">履歴書変換</span>
+        <span class="badge-num badge-mute" id="resume-badge">0</span>
+        <div class="working-dot"></div>
+      </div>
+
+      <div class="nav-item">
+        <div class="nav-icon" style="background: #AFA9EC;">
+          <svg width="12" height="12" viewBox="0 0 18 18" fill="none">
+            <circle cx="6" cy="6" r="2.5" stroke="#26215C" stroke-width="1.8"/>
+            <circle cx="13" cy="7" r="2" stroke="#26215C" stroke-width="1.8"/>
+            <path d="M2 14c0-2 2-3.5 4-3.5s4 1.5 4 3.5" stroke="#26215C" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <span class="nav-label">人材DB</span>
+      </div>
+
+      <p class="section-label spaced">借りているもの</p>
+
+      <div class="nav-item active" data-pane="claude" onclick="switchPane('claude')">
+        <div class="nav-icon" style="background: #EEEDFE;">
+          <svg width="12" height="12" viewBox="0 0 18 18" fill="none">
+            <path d="M9 2L4 14h2.5l1-2.5h3l1 2.5H14L9 2z" stroke="#3C3489" stroke-width="1.6" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <span class="nav-label active">Claude</span>
+        <span class="badge-num badge-new">AI</span>
+      </div>
+
+      <div class="nav-item">
+        <div class="nav-icon" style="background: #F1EFE8;">
+          <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
+            <rect x="1.5" y="3" width="11" height="8" rx="1" stroke="#5F5E5A" stroke-width="1.3"/>
+            <path d="M1.5 4l5.5 4 5.5-4" stroke="#5F5E5A" stroke-width="1.3"/>
+          </svg>
+        </div>
+        <span class="nav-label muted">Gmail</span>
+      </div>
+
+      <div class="nav-item">
+        <div class="nav-icon" style="background: #F1EFE8;">
+          <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
+            <rect x="2" y="3" width="10" height="9" rx="1" stroke="#5F5E5A" stroke-width="1.3"/>
+            <path d="M2 5.5h10" stroke="#5F5E5A" stroke-width="1.3"/>
+            <path d="M5 2v2M9 2v2" stroke="#5F5E5A" stroke-width="1.3" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <span class="nav-label muted">カレンダー</span>
+      </div>
+
+      <div class="nav-item">
+        <div class="nav-icon" style="background: #F1EFE8;">
+          <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
+            <path d="M5 1.5l-3 5.5 2.5 4h6l2.5-4-3-5.5H5z" stroke="#5F5E5A" stroke-width="1.3" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <span class="nav-label muted">Drive</span>
+      </div>
+    </div>
+
+    <!-- メイン -->
+    <div class="main-area">
+
+      <div class="breadcrumb">
+        <div class="breadcrumb-text">
+          <h2 id="bc-title">Claude</h2>
+          <span class="breadcrumb-path" id="bc-path">/ AIアシスタント / 新しい会話</span>
+        </div>
+        <span class="building-badge badge-borrowed" id="bc-badge">borrowed</span>
+      </div>
+
+      <!-- Claude -->
+      <div class="pane active" id="pane-claude">
+        <div class="chat-area">
+          <div class="chat-messages" id="chat-messages">
+            <div class="chat-msg assistant">
+              <div class="chat-msg-meta">Claude</div>
+              <div class="chat-msg-bubble">
+                おはようございます、山口さん。<br>
+                今日もCONNECT Studioへようこそ。何かお手伝いできることはありますか?
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-suggestions">
+            <button class="chat-suggestion" onclick="suggestPrompt('田中様への返信文を考えて')">田中様への返信文を考えて</button>
+            <button class="chat-suggestion" onclick="suggestPrompt('今日の予定を要約して')">今日の予定を要約して</button>
+          </div>
+
+          <div class="chat-input-area">
+            <textarea class="chat-input" id="chat-input" placeholder="メッセージを入力..." rows="1"></textarea>
+            <button class="chat-send" onclick="sendChat()">送信</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mail -->
+      <div class="pane" id="pane-mail">
+        <div class="mail-grid">
+          <div class="mail-list" id="mail-list">
+            <!-- JSで生成 -->
+          </div>
+          <div class="mail-body" id="mail-body">
+            <!-- JSで生成 -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 履歴書変換 -->
+      <div class="pane" id="pane-resume">
+        <div class="resume-area">
+          <p class="resume-section-title">履歴書をアップロード</p>
+          <div class="upload-zone">
+            <div class="upload-icon">
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                <path d="M16 22V8M16 8L10 14M16 8l6 6" stroke="#888780" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M6 22v3a2 2 0 002 2h16a2 2 0 002-2v-3" stroke="#888780" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <p class="upload-text">ここに履歴書をドラッグ&ドロップ</p>
+            <p class="upload-hint">PDF, Word, 画像ファイルに対応</p>
+            <button class="demo-btn" onclick="startDemoConversion()">▶ デモ:3件のサンプル履歴書を変換する</button>
+          </div>
+
+          <p class="resume-section-title">処理中・完了したファイル <span style="color: #888780; font-weight: 400;" id="file-count">(0件)</span></p>
+          <div class="file-list" id="file-list">
+            <p style="font-size: 12px; color: #888780; padding: 16px 0; text-align: center;">まだファイルはありません。上の「デモ」ボタンを押してみてください。</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 右サイド -->
+    <div class="sidebar-right">
+      <div>
+        <p class="panel-eyebrow">TODAY'S NOTE</p>
+        <p class="note-box">誠さんが履歴書ツール v0.8.2 をデプロイ。精度が一歩前進。</p>
+      </div>
+
+      <div>
+        <p class="panel-title">本日の予定</p>
+        <div class="schedule-list">
+          <div class="schedule-item amber"><div class="schedule-time">10:00</div><div class="schedule-title">経営定例</div></div>
+          <div class="schedule-item purple"><div class="schedule-time">13:30</div><div class="schedule-title">誠さん 1on1</div></div>
+          <div class="schedule-item teal"><div class="schedule-time">15:00</div><div class="schedule-title">クライアント面談</div></div>
+          <div class="schedule-item gray"><div class="schedule-time">17:00</div><div class="schedule-title">週次レビュー</div></div>
+        </div>
+      </div>
+
+      <div>
+        <p class="panel-title">工房ログ</p>
+        <div class="log-list" id="log-list">
+          <div class="log-item">
+            <div class="log-dot amber"></div>
+            <div><div class="log-time">10分前</div><div class="log-text">問い合わせ 4 件</div></div>
+          </div>
+          <div class="log-item">
+            <div class="log-dot green"></div>
+            <div><div class="log-time">1時間前</div><div class="log-text">v0.8.2 を出荷 🔨</div></div>
+          </div>
+          <div class="log-item">
+            <div class="log-dot purple"></div>
+            <div><div class="log-time">昨日</div><div class="log-text">新しい仲間候補 12 名</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    <span class="footer-text">Built by us, for us. — CONNECT Studio</span>
+    <span class="footer-note">状態保持デモ v3 / 試してみてください ↑</span>
+  </div>
+
+</div>
+
+<p class="caption">
+  <strong>体験のしかた:</strong>
+  ① Claudeで何かチャットする → ② Mailをクリックしてメールに対応する → ③ 履歴書変換でデモ変換を開始する → ④ 別のアプリに移動 → ⑤ 戻ってくる<br>
+  すべて状態が保持されています。履歴書変換は<strong>裏で進行中</strong>になり、左サイドのアイコンに動作中ドット <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #BA7517; vertical-align: middle;"></span> が点滅します。
+</p>
+
+<script>
+  // === 状態管理 ===
+  const state = {
+    mails: [
+      { id: 'm1', from: '田中様 / ABC社', email: 'tanaka@abc.co.jp', avatar: '田', time: '9:42', datetime: '2026.04.27 9:42', preview: 'お見積もりの件、ご確認...', subject: 'お見積もりの件、ご確認お願いいたします', body: '<p>山口様</p><p>いつもお世話になっております。<br>株式会社ABCの田中です。</p><p>先日ご相談しました件のお見積もりをお送りいたします。ご確認のほどよろしくお願いいたします。</p><p>不明点ございましたら、お気軽にご連絡くださいませ。</p><p class="signature">— 田中</p>', tag: 'todo', read: false, done: false },
+      { id: 'm2', from: '採用応募 / 山田氏', email: 'yamada@example.com', avatar: '山', time: '9:15', datetime: '2026.04.27 9:15', preview: 'エンジニアポジションへ...', subject: 'エンジニアポジションへの応募', body: '<p>採用ご担当者様</p><p>はじめまして、山田と申します。<br>御社のエンジニアポジションに応募させていただきたく、ご連絡しました。</p><p>履歴書を添付いたしますので、ご確認のほどよろしくお願いいたします。</p>', tag: 'recruit', read: false, done: false },
+      { id: 'm3', from: '佐藤様 / XYZ商事', email: 'sato@xyz.co.jp', avatar: '佐', time: '8:51', datetime: '2026.04.27 8:51', preview: '来週の打ち合わせ日程...', subject: '来週の打ち合わせ日程について', body: '<p>山口様</p><p>来週の打ち合わせ日程ですが、5月7日(木) 14:00からでいかがでしょうか。</p><p>ご都合いかがでしょうか。よろしくお願いいたします。</p>', tag: null, read: false, done: false },
+      { id: 'm4', from: '鈴木様', email: 'suzuki@example.com', avatar: '鈴', time: '昨日', datetime: '2026.04.26', preview: '資料お送りいたしました', subject: '資料お送りいたしました', body: '<p>資料お送りいたしました。ご確認お願いいたします。</p>', tag: null, read: true, done: false },
+      { id: 'm5', from: '高橋様 / DEF', email: 'takahashi@def.com', avatar: '高', time: '昨日', datetime: '2026.04.26', preview: '先日はありがとうござ...', subject: '先日はありがとうございました', body: '<p>先日はお時間をいただきありがとうございました。</p>', tag: null, read: true, done: false }
+    ],
+    selectedMailId: 'm1',
+    chatMessages: [
+      { role: 'assistant', text: 'おはようございます、山口さん。<br>今日もCONNECT Studioへようこそ。何かお手伝いできることはありますか?' }
+    ],
+    files: [],
+    fileCounter: 0
+  };
+
+  let currentPane = 'claude';
+
+  // === ペイン切り替え ===
+  function switchPane(name) {
+    currentPane = name;
+
+    document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+    document.getElementById('pane-' + name).classList.add('active');
+
+    document.querySelectorAll('.nav-item').forEach(n => {
+      n.classList.remove('active');
+      const lbl = n.querySelector('.nav-label');
+      if (lbl) lbl.classList.remove('active');
+    });
+    const activeItem = document.querySelector('[data-pane="' + name + '"]');
+    if (activeItem) {
+      activeItem.classList.add('active');
+      activeItem.querySelector('.nav-label').classList.add('active');
+    }
+
+    const bcTitle = document.getElementById('bc-title');
+    const bcPath = document.getElementById('bc-path');
+    const bcBadge = document.getElementById('bc-badge');
+
+    if (name === 'mail') {
+      bcTitle.textContent = 'CONNECT Mail';
+      bcPath.textContent = '/ 受信箱 / 要対応';
+      bcBadge.textContent = 'building 35%';
+      bcBadge.className = 'building-badge badge-building';
+      renderMail();
+    } else if (name === 'claude') {
+      bcTitle.textContent = 'Claude';
+      bcPath.textContent = '/ AIアシスタント / 会話継続中';
+      bcBadge.textContent = 'borrowed';
+      bcBadge.className = 'building-badge badge-borrowed';
+    } else if (name === 'resume') {
+      bcTitle.textContent = '履歴書変換ツール';
+      bcPath.textContent = '/ アップロード';
+      bcBadge.textContent = 'beta';
+      bcBadge.className = 'building-badge badge-beta';
+      renderFiles();
+    }
+  }
+
+  // === Mail レンダリング ===
+  function renderMail() {
+    const list = document.getElementById('mail-list');
+    list.innerHTML = state.mails.map(m => {
+      const tagHtml = m.done ? '<span class="mail-tag tag-done">対応済み</span>' :
+                      m.tag === 'todo' ? '<span class="mail-tag tag-todo">要対応</span>' :
+                      m.tag === 'recruit' ? '<span class="mail-tag tag-recruit">採用</span>' : '';
+      return `
+        <div class="mail-item ${m.id === state.selectedMailId ? 'active' : ''}" onclick="selectMail('${m.id}')">
+          <div class="mail-row">
+            <span class="mail-from ${m.read ? 'read' : ''}">${escapeHtml(m.from)}</span>
+            <span class="mail-time">${m.time}</span>
+          </div>
+          <div class="mail-preview ${m.read ? 'read' : ''}">${escapeHtml(m.preview)}</div>
+          ${tagHtml}
+        </div>
+      `;
+    }).join('');
+
+    const m = state.mails.find(x => x.id === state.selectedMailId);
+    if (!m) return;
+    const body = document.getElementById('mail-body');
+    body.innerHTML = `
+      <div class="mail-header">
+        <div class="mail-subject">${escapeHtml(m.subject)}</div>
+        <div class="mail-meta">
+          <div class="mail-avatar">${escapeHtml(m.avatar)}</div>
+          <span class="mail-sender">${escapeHtml(m.from.split(' / ')[0])} <span class="email">&lt;${escapeHtml(m.email)}&gt;</span></span>
+          <span class="mail-datetime">${m.datetime}</span>
+        </div>
+      </div>
+      <div class="mail-content">${m.body}</div>
+      <div class="mail-actions">
+        <button>返信</button>
+        <button>転送</button>
+        <button class="primary ${m.done ? 'done' : ''}" onclick="toggleDone('${m.id}')">
+          ${m.done ? '✓ 対応済み' : '対応済みにする'}
+        </button>
+      </div>
+    `;
+  }
+
+  function selectMail(id) {
+    state.selectedMailId = id;
+    const m = state.mails.find(x => x.id === id);
+    if (m) m.read = true;
+    updateMailBadge();
+    renderMail();
+  }
+
+  function toggleDone(id) {
+    const m = state.mails.find(x => x.id === id);
+    if (m) m.done = !m.done;
+    renderMail();
+  }
+
+  function updateMailBadge() {
+    const unread = state.mails.filter(m => !m.read).length;
+    const badge = document.getElementById('mail-badge');
+    badge.textContent = unread;
+    badge.style.display = unread > 0 ? '' : 'none';
+  }
+
+  // === Claude チャット ===
+  function suggestPrompt(text) {
+    document.getElementById('chat-input').value = text;
+    document.getElementById('chat-input').focus();
+  }
+
+  function sendChat() {
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    if (!text) return;
+    state.chatMessages.push({ role: 'user', text: escapeHtml(text) });
+    input.value = '';
+    renderChat();
+
+    setTimeout(() => {
+      state.chatMessages.push({
+        role: 'assistant',
+        text: '承知しました。「' + escapeHtml(text) + '」について考えてみます。<br><br><span style="color: #888780; font-size: 11px;">※ プロトタイプなのでダミー応答です。本番ではClaude APIに接続します。</span>'
+      });
+      renderChat();
+    }, 600);
+  }
+
+  function renderChat() {
+    const messages = document.getElementById('chat-messages');
+    messages.innerHTML = state.chatMessages.map(m => `
+      <div class="chat-msg ${m.role}">
+        <div class="chat-msg-meta">${m.role === 'user' ? '山口' : 'Claude'}</div>
+        <div class="chat-msg-bubble">${m.text}</div>
+      </div>
+    `).join('');
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  document.getElementById('chat-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendChat();
+    }
+  });
+
+  // === 履歴書変換 デモ ===
+  function startDemoConversion() {
+    const sampleNames = ['山田太郎_履歴書.pdf', '佐藤花子_履歴書.docx', '鈴木一郎_履歴書.pdf'];
+    sampleNames.forEach((name, i) => {
+      setTimeout(() => {
+        const file = {
+          id: 'f' + (++state.fileCounter),
+          name: name,
+          progress: 0,
+          done: false
+        };
+        state.files.push(file);
+        renderFiles();
+        updateResumeBadge();
+        setNavWorking('resume', true);
+
+        // プログレス更新(7秒で完了)
+        const interval = setInterval(() => {
+          file.progress += 100 / 14; // 0.5秒ごとに約7%
+          if (file.progress >= 100) {
+            file.progress = 100;
+            file.done = true;
+            clearInterval(interval);
+            addLog('履歴書 ' + name + ' を変換完了 ✓');
+            // 全ファイル完了したらドット消す
+            if (state.files.every(f => f.done)) {
+              setNavWorking('resume', false);
+            }
+          }
+          renderFiles();
+        }, 500);
+      }, i * 800);
+    });
+  }
+
+  function renderFiles() {
+    const list = document.getElementById('file-list');
+    const count = document.getElementById('file-count');
+    if (count) count.textContent = state.files.length > 0 ? '(' + state.files.length + '件)' : '(0件)';
+
+    if (state.files.length === 0) {
+      list.innerHTML = '<p style="font-size: 12px; color: #888780; padding: 16px 0; text-align: center;">まだファイルはありません。上の「デモ」ボタンを押してみてください。</p>';
+      return;
+    }
+
+    list.innerHTML = state.files.map(f => `
+      <div class="file-item">
+        <div class="file-icon">
+          <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
+            <path d="M5 2h6l3 3v11H5V2z" stroke="#FFFEFA" stroke-width="1.6" stroke-linejoin="round" fill="${f.done ? '#639922' : '#F0997B'}"/>
+          </svg>
+        </div>
+        <div class="file-info">
+          <div class="file-name">${escapeHtml(f.name)}</div>
+          <div class="file-status">${f.done ? '✓ 変換完了 / Excelエクスポート可能' : '変換中... ' + Math.round(f.progress) + '%'}</div>
+          <div class="file-progress-wrap">
+            <div class="file-progress ${f.done ? 'done' : ''}" style="width: ${f.progress}%;"></div>
+          </div>
+        </div>
+        <button class="file-action ${f.done ? '' : 'disabled'}" ${f.done ? '' : 'disabled'}>
+          ${f.done ? '↓ DL' : '処理中'}
+        </button>
+      </div>
+    `).join('');
+  }
+
+  function updateResumeBadge() {
+    const badge = document.getElementById('resume-badge');
+    const working = state.files.filter(f => !f.done).length;
+    if (working > 0) {
+      badge.textContent = working;
+      badge.className = 'badge-num badge-hot';
+    } else if (state.files.length > 0) {
+      badge.textContent = state.files.length;
+      badge.className = 'badge-num badge-mute';
+    } else {
+      badge.textContent = '0';
+      badge.className = 'badge-num badge-mute';
+    }
+  }
+
+  function setNavWorking(pane, on) {
+    const item = document.querySelector('[data-pane="' + pane + '"]');
+    if (!item) return;
+    if (on) item.classList.add('working');
+    else item.classList.remove('working');
+  }
+
+  function addLog(text) {
+    const log = document.getElementById('log-list');
+    const item = document.createElement('div');
+    item.className = 'log-item';
+    item.innerHTML = `
+      <div class="log-dot green"></div>
+      <div><div class="log-time">たった今</div><div class="log-text">${escapeHtml(text)}</div></div>
+    `;
+    log.insertBefore(item, log.firstChild);
+  }
+
+  // === Util ===
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // 初期化
+  updateMailBadge();
+  renderMail();
+  updateResumeBadge();
+</script>
+
+</body>
+</html>
