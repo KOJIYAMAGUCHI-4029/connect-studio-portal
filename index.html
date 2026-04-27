@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>CONNECT Studio - 状態保持デモ v3</title>
+<title>CONNECT Studio - v5 / Slack & Ovice統合</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -246,6 +246,55 @@
   .log-time { font-size: 10px; color: #888780; }
   .log-text { font-size: 11px; line-height: 1.45; }
 
+  /* === Launch画面(Slack / Ovice) === */
+  .launch-area {
+    height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 40px 24px;
+    text-align: center;
+  }
+  .launch-icon-wrap {
+    width: 72px; height: 72px; border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 18px;
+  }
+  .launch-icon-wrap.slack { background: #4A154B; }
+  .launch-icon-wrap.ovice { background: #1B7CC8; }
+  .launch-title {
+    font-size: 20px; font-weight: 500;
+    margin-bottom: 6px; color: #2C2C2A;
+  }
+  .launch-desc {
+    font-size: 13px; color: #5F5E5A;
+    margin-bottom: 24px; line-height: 1.7;
+    max-width: 400px;
+  }
+  .launch-button {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 24px; border-radius: 8px;
+    background: #2C2C2A; color: #FAF7F2;
+    text-decoration: none; font-size: 13px; font-weight: 500;
+    border: none; cursor: pointer; font-family: inherit;
+    transition: opacity 0.15s;
+  }
+  .launch-button:hover { opacity: 0.85; }
+  .launch-note {
+    margin-top: 18px;
+    font-size: 11px; color: #888780; font-style: italic;
+  }
+  .launch-meta {
+    margin-top: 22px;
+    padding: 12px 16px;
+    background: #FFFEFA;
+    border: 0.5px dashed #B4B2A9;
+    border-radius: 8px;
+    font-size: 11px; color: #5F5E5A;
+    line-height: 1.7;
+    max-width: 420px; text-align: left;
+  }
+  .launch-meta strong { color: #2C2C2A; }
+
   .footer { padding: 10px 20px; background: #FFFEFA; border-top: 0.5px dashed #B4B2A9; display: flex; justify-content: space-between; align-items: center; }
   .footer-text { font-size: 11px; color: #888780; font-style: italic; }
   .footer-note { font-size: 11px; color: #5F5E5A; }
@@ -323,6 +372,28 @@
         </div>
         <span class="nav-label active">Claude</span>
         <span class="badge-num badge-new">AI</span>
+      </div>
+
+      <div class="nav-item" data-pane="slack" onclick="switchPane('slack')">
+        <div class="nav-icon" style="background: #4A154B;">
+          <svg width="12" height="12" viewBox="0 0 18 18" fill="none">
+            <rect x="2" y="7" width="4" height="2" rx="1" fill="#ECB22E"/>
+            <rect x="9" y="2" width="2" height="4" rx="1" fill="#36C5F0"/>
+            <rect x="12" y="9" width="4" height="2" rx="1" fill="#2EB67D"/>
+            <rect x="7" y="12" width="2" height="4" rx="1" fill="#E01E5A"/>
+          </svg>
+        </div>
+        <span class="nav-label">Slack</span>
+      </div>
+
+      <div class="nav-item" data-pane="ovice" onclick="switchPane('ovice')">
+        <div class="nav-icon" style="background: #1B7CC8;">
+          <svg width="12" height="12" viewBox="0 0 18 18" fill="none">
+            <circle cx="9" cy="9" r="6" stroke="#FFFFFF" stroke-width="1.6"/>
+            <circle cx="9" cy="9" r="2" fill="#FFFFFF"/>
+          </svg>
+        </div>
+        <span class="nav-label">Ovice</span>
       </div>
 
       <div class="nav-item">
@@ -427,6 +498,52 @@
         </div>
       </div>
 
+      <!-- Slack -->
+      <div class="pane" id="pane-slack">
+        <div class="launch-area">
+          <div class="launch-icon-wrap slack">
+            <svg width="32" height="32" viewBox="0 0 18 18" fill="none">
+              <rect x="2" y="7" width="4" height="2" rx="1" fill="#ECB22E"/>
+              <rect x="9" y="2" width="2" height="4" rx="1" fill="#36C5F0"/>
+              <rect x="12" y="9" width="4" height="2" rx="1" fill="#2EB67D"/>
+              <rect x="7" y="12" width="2" height="4" rx="1" fill="#E01E5A"/>
+            </svg>
+          </div>
+          <p class="launch-title">Slack</p>
+          <p class="launch-desc">社内チャット・連絡用ツール。<br>新しいタブで開きます。</p>
+          <a href="https://app.slack.com/client/T01363L10KG/C0144FZUBDK" target="_blank" rel="noopener" class="launch-button">
+            Slack を開く ↗
+          </a>
+          <p class="launch-note">※ Slackはセキュリティ上、ポータル内に直接埋め込めない仕様です</p>
+          <div class="launch-meta">
+            <strong>将来的に置き換えるなら:</strong><br>
+            CONNECT Studio版の社内コミュニケーションツール(仮称: CONNECT Talk)を内製化することも検討余地あり。
+          </div>
+        </div>
+      </div>
+
+      <!-- Ovice -->
+      <div class="pane" id="pane-ovice">
+        <div class="launch-area">
+          <div class="launch-icon-wrap ovice">
+            <svg width="32" height="32" viewBox="0 0 18 18" fill="none">
+              <circle cx="9" cy="9" r="6" stroke="#FFFFFF" stroke-width="1.6"/>
+              <circle cx="9" cy="9" r="2" fill="#FFFFFF"/>
+            </svg>
+          </div>
+          <p class="launch-title">Ovice</p>
+          <p class="launch-desc">バーチャルオフィス。<br>新しいタブで開いて入室します。</p>
+          <a href="https://app.ovice.com/ws/a2zignx1qu/@pos-n611phw" target="_blank" rel="noopener" class="launch-button">
+            Ovice に入室 ↗
+          </a>
+          <p class="launch-note">※ マイク・カメラ権限が求められる場合は許可してください</p>
+          <div class="launch-meta">
+            <strong>将来的に置き換えるなら:</strong><br>
+            社内専用のバーチャルオフィス機能を CONNECT Studio に内製する選択肢も。まずは Ovice で運用継続。
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <!-- 右サイド -->
@@ -469,7 +586,7 @@
 
   <div class="footer">
     <span class="footer-text">Built by us, for us. — CONNECT Studio</span>
-    <span class="footer-note">更新テスト v4 / 反映確認できたら成功!</span>
+    <span class="footer-note">v5 / Slack & Ovice 追加</span>
   </div>
 
 </div>
@@ -539,6 +656,16 @@
       bcBadge.textContent = 'beta';
       bcBadge.className = 'building-badge badge-beta';
       renderFiles();
+    } else if (name === 'slack') {
+      bcTitle.textContent = 'Slack';
+      bcPath.textContent = '/ 社内チャット';
+      bcBadge.textContent = 'borrowed';
+      bcBadge.className = 'building-badge badge-borrowed';
+    } else if (name === 'ovice') {
+      bcTitle.textContent = 'Ovice';
+      bcPath.textContent = '/ バーチャルオフィス';
+      bcBadge.textContent = 'borrowed';
+      bcBadge.className = 'building-badge badge-borrowed';
     }
   }
 
