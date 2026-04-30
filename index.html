@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>CONNECT Studio - v11 / 個人別ダッシュボード</title>
+<title>CONNECT Studio - v12 / フル幅 + Claude連携 + 個人カレンダー</title>
 
 <script>
 /* ════════════════════════════════════════════════════════════════
@@ -87,18 +87,38 @@ const USER_MAP = {
   yamada:    12,  // 山田
   kase:      13,  // 加瀬
 };
+
+// ── ユーザー別 Google カレンダーID ──
+//   公開設定されているカレンダーIDを指定すれば、
+//   その人の今日の予定を「本日の予定」セクションに自動表示します。
+//   未指定のユーザーは共通カレンダーから取得します。
+const CALENDAR_MAP = {
+  yamaguchi: 'gckj4029@gmail.com',
+  // asami:     '...',
+  // sato:      '...',
+  // ... 必要に応じて追加
+};
+
+// 全員に表示する共通カレンダー(個人カレンダー未設定時のフォールバック)
+const SHARED_CALENDAR_ID = 't54og1i2tbdrhg0pj0a0ngv4fg@group.calendar.google.com';
 </script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
-    background: #EAE5DA; padding: 24px; min-height: 100vh; color: #2C2C2A;
+    background: #EAE5DA; padding: 0; min-width: 1200px;
+    color: #2C2C2A;
+    display: flex; flex-direction: column;
+    min-height: 100vh;
   }
   .frame {
-    max-width: 1200px; margin: 0 auto;
-    background: #FAF7F2; border-radius: 12px;
-    border: 0.5px solid #D3D1C7; overflow: hidden;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    flex: 1;
+    max-width: none; margin: 0;
+    background: #FAF7F2; border-radius: 0;
+    border: none; overflow: hidden;
+    box-shadow: none;
+    display: flex; flex-direction: column;
   }
   .topbar {
     display: flex; justify-content: space-between; align-items: center;
@@ -119,7 +139,11 @@ const USER_MAP = {
     font-size: 11px; font-weight: 500; color: #854F0B;
   }
 
-  .body-grid { display: grid; grid-template-columns: 180px 1fr 220px; min-height: 620px; }
+  .body-grid {
+    display: grid;
+    grid-template-columns: 200px minmax(0, 1fr) 280px;
+    flex: 1; min-height: 0;
+  }
 
   /* 左サイド */
   .sidebar-left {
@@ -163,7 +187,7 @@ const USER_MAP = {
   }
 
   /* メイン */
-  .main-area { display: grid; grid-template-rows: auto 1fr; min-width: 0; }
+  .main-area { display: grid; grid-template-rows: auto 1fr; min-width: 0; min-height: 0; }
   .breadcrumb {
     padding: 14px 18px; border-bottom: 0.5px solid #D3D1C7;
     display: flex; justify-content: space-between; align-items: center;
@@ -176,7 +200,7 @@ const USER_MAP = {
   .badge-borrowed { background: #F1EFE8; color: #5F5E5A; }
   .badge-beta { background: #C0DD97; color: #173404; }
 
-  .pane { display: none; height: 100%; }
+  .pane { display: none; height: 100%; min-height: 0; overflow: hidden; }
   .pane.active { display: block; }
 
   /* === Claude チャット === */
@@ -331,6 +355,123 @@ const USER_MAP = {
   .log-time { font-size: 10px; color: #888780; }
   .log-text { font-size: 11px; line-height: 1.45; }
 
+  /* === 設定パネル(右上)=== */
+  .settings-trigger {
+    background: transparent; border: 0.5px solid #B4B2A9;
+    border-radius: 6px; padding: 5px 10px;
+    font-size: 11px; cursor: pointer; font-family: inherit;
+    color: #5F5E5A; transition: all 0.15s;
+  }
+  .settings-trigger:hover { border-color: #BA7517; color: #2C2C2A; }
+  .settings-modal-bg {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(44, 44, 42, 0.4);
+    z-index: 1000; align-items: center; justify-content: center;
+  }
+  .settings-modal-bg.open { display: flex; }
+  .settings-modal {
+    background: #FAF7F2;
+    border: 0.5px solid #D3D1C7;
+    border-radius: 12px;
+    padding: 24px;
+    width: 480px; max-width: 90vw;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+  }
+  .settings-modal h3 {
+    font-size: 15px; font-weight: 500; margin-bottom: 16px;
+  }
+  .settings-row { margin-bottom: 16px; }
+  .settings-label {
+    display: block;
+    font-size: 12px; color: #5F5E5A;
+    margin-bottom: 6px;
+  }
+  .settings-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 0.5px solid #B4B2A9;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: #FFFEFA; color: #2C2C2A;
+    outline: none; box-sizing: border-box;
+  }
+  .settings-input:focus { border-color: #534AB7; }
+  .settings-help {
+    font-size: 11px; color: #888780;
+    margin-top: 6px; line-height: 1.6;
+  }
+  .settings-help a { color: #534AB7; }
+  .settings-warning {
+    margin-top: 10px;
+    padding: 8px 10px;
+    background: #FCEBEB;
+    border: 0.5px solid #F0997B;
+    border-radius: 6px;
+    font-size: 10px; color: #4A1B0C;
+    line-height: 1.6;
+  }
+  .settings-actions {
+    display: flex; justify-content: flex-end; gap: 8px;
+    margin-top: 20px; padding-top: 16px;
+    border-top: 0.5px solid #D3D1C7;
+  }
+  .settings-actions button {
+    padding: 8px 16px; border-radius: 6px;
+    font-size: 12px; font-weight: 500;
+    cursor: pointer; font-family: inherit;
+    transition: all 0.15s;
+  }
+  .settings-cancel {
+    background: transparent; border: 0.5px solid #B4B2A9;
+    color: #5F5E5A;
+  }
+  .settings-save {
+    background: #2C2C2A; color: #FAF7F2; border: none;
+  }
+  .settings-clear {
+    background: transparent; border: 0.5px solid #F0997B;
+    color: #A32D2D; margin-right: auto;
+  }
+
+  /* === チャット拡張(スピナー、APIキー未設定の案内)=== */
+  .chat-spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid #D3D1C7;
+    border-top-color: #534AB7;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .chat-api-warning {
+    margin: 16px 24px;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, #FFFEFA 0%, #FAEEDA 100%);
+    border: 0.5px solid #EF9F27; border-radius: 8px;
+    font-size: 12px; line-height: 1.7;
+  }
+  .chat-api-warning strong { color: #854F0B; }
+  .chat-api-warning button {
+    margin-top: 8px;
+    padding: 6px 14px;
+    background: #2C2C2A; color: #FAF7F2;
+    border: none; border-radius: 6px;
+    font-size: 11px; font-weight: 500;
+    cursor: pointer; font-family: inherit;
+  }
+
+  /* === スケジュール(動的)=== */
+  .schedule-loading, .schedule-empty {
+    padding: 12px;
+    font-size: 11px; color: #888780;
+    text-align: center; font-style: italic;
+  }
+
   /* === 個人別KPI(コンパクト6項目)=== */
   .kpi-mini-grid {
     display: grid;
@@ -414,7 +555,7 @@ const USER_MAP = {
   /* === 右パネル拡張(スクロール対応 + 新セクション) === */
   .sidebar-right {
     overflow-y: auto;
-    max-height: 620px;  /* body-gridのmin-heightと同じ */
+    min-height: 0;
   }
   .sidebar-right::-webkit-scrollbar { width: 6px; }
   .sidebar-right::-webkit-scrollbar-track { background: transparent; }
@@ -623,7 +764,7 @@ const USER_MAP = {
   .footer-text { font-size: 11px; color: #888780; font-style: italic; }
   .footer-note { font-size: 11px; color: #5F5E5A; }
 
-  .caption { max-width: 1200px; margin: 16px auto 0; font-size: 12px; color: #5F5E5A; text-align: center; line-height: 1.7; }
+  .caption { display: none; }
   .caption strong { color: #2C2C2A; }
 </style>
 </head>
@@ -641,6 +782,7 @@ const USER_MAP = {
     </div>
     <div class="top-right">
       <span class="date">2026.04.27 月</span>
+      <button class="settings-trigger" onclick="openSettings()">⚙ 設定</button>
       <div class="avatar" id="user-avatar">YK</div>
     </div>
   </div>
@@ -940,16 +1082,8 @@ const USER_MAP = {
       <!-- ④ TODAY'S NOTE -->
       <div id="note-container"></div>
 
-      <!-- ⑤ 本日の予定(カレンダー直結なので固定) -->
-      <div>
-        <p class="panel-title">本日の予定</p>
-        <div class="schedule-list">
-          <div class="schedule-item amber"><div class="schedule-time">10:00</div><div class="schedule-title">経営定例</div></div>
-          <div class="schedule-item purple"><div class="schedule-time">13:30</div><div class="schedule-title">誠さん 1on1</div></div>
-          <div class="schedule-item teal"><div class="schedule-time">15:00</div><div class="schedule-title">クライアント面談</div></div>
-          <div class="schedule-item gray"><div class="schedule-time">17:00</div><div class="schedule-title">週次レビュー</div></div>
-        </div>
-      </div>
+      <!-- ⑤ 本日の予定(個人カレンダーから取得) -->
+      <div id="schedule-container"></div>
 
       <!-- ⑥ 工房ログ -->
       <div id="log-container"></div>
@@ -959,7 +1093,7 @@ const USER_MAP = {
 
   <div class="footer">
     <span class="footer-text">Built by us, for us. — CONNECT Studio</span>
-    <span class="footer-note">v11 / ?user= で個人別表示</span>
+    <span class="footer-note">v12 / フル幅 + Claude API + 個人カレンダー</span>
   </div>
 
 </div>
@@ -1126,31 +1260,188 @@ const USER_MAP = {
     document.getElementById('chat-input').focus();
   }
 
-  function sendChat() {
+  // ──────── Claude API設定 ────────
+  const CLAUDE_API_KEY_STORAGE = 'connect_studio_claude_api_key';
+  const CLAUDE_MODEL = 'claude-opus-4-5';
+
+  function getApiKey() {
+    try { return localStorage.getItem(CLAUDE_API_KEY_STORAGE) || ''; }
+    catch { return ''; }
+  }
+  function setApiKey(k) {
+    try { localStorage.setItem(CLAUDE_API_KEY_STORAGE, k); }
+    catch (e) { console.warn(e); }
+  }
+  function clearApiKey() {
+    try { localStorage.removeItem(CLAUDE_API_KEY_STORAGE); }
+    catch (e) { console.warn(e); }
+  }
+
+  function openSettings() {
+    document.getElementById('settings-modal-bg').classList.add('open');
+    const input = document.getElementById('settings-api-key');
+    if (input) input.value = getApiKey();
+  }
+  function closeSettings() {
+    document.getElementById('settings-modal-bg').classList.remove('open');
+  }
+  function saveSettings() {
+    const input = document.getElementById('settings-api-key');
+    const k = input.value.trim();
+    if (k) setApiKey(k);
+    closeSettings();
+    // チャット画面が APIキー警告を出していたらリフレッシュ
+    refreshChatPaneIfNeeded();
+  }
+  function clearSettings() {
+    if (!confirm('保存されているAPIキーを削除しますか?')) return;
+    clearApiKey();
+    document.getElementById('settings-api-key').value = '';
+    closeSettings();
+    refreshChatPaneIfNeeded();
+  }
+
+  function refreshChatPaneIfNeeded() {
+    // チャット画面が表示中ならメッセージを再描画
+    if (currentPane === 'claude') renderChat();
+  }
+
+  // ──────── システムプロンプト生成 ────────
+  function buildSystemPrompt() {
+    let userName = WEEKLY_CONFIG && WEEKLY_CONFIG.userName ? WEEKLY_CONFIG.userName : 'ユーザー';
+    let achievementRate = '不明';
+    if (CURRENT_USER && CURRENT_USER.rate != null) {
+      userName = CURRENT_USER.name || userName;
+      achievementRate = normalizeRateToPercent(CURRENT_USER.rate).toFixed(1);
+    }
+    return `あなたはCONNECT Studioの専属AIアシスタントです。ユーザーの営業活動をサポートしてください。現在のユーザー: ${userName}、今月の売上達成率: ${achievementRate}%`;
+  }
+
+  // ──────── Claude API呼び出し ────────
+  async function callClaudeAPI(userText) {
+    const apiKey = getApiKey();
+    if (!apiKey) throw new Error('APIキーが設定されていません');
+
+    // 過去のやり取りを Anthropic API 形式に変換
+    const history = state.chatMessages
+      .filter(m => m.role === 'user' || m.role === 'assistant')
+      .map(m => ({
+        role: m.role,
+        content: stripHtmlTags(m.text)
+      }));
+    // 末尾の今送るメッセージは history に既に入っているはずなので確認
+    // (sendChatでは push してから呼ぶので、最後が今のuser message)
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: CLAUDE_MODEL,
+        max_tokens: 1024,
+        system: buildSystemPrompt(),
+        messages: history,
+      }),
+    });
+    if (!res.ok) {
+      let errMsg = 'HTTP ' + res.status;
+      try {
+        const err = await res.json();
+        if (err && err.error && err.error.message) errMsg += ': ' + err.error.message;
+      } catch {}
+      throw new Error(errMsg);
+    }
+    const data = await res.json();
+    const text = (data.content || [])
+      .filter(b => b.type === 'text')
+      .map(b => b.text).join('');
+    return text || '(応答なし)';
+  }
+
+  function stripHtmlTags(s) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = s;
+    return tmp.textContent || tmp.innerText || '';
+  }
+
+  // ──────── sendChat(本物のClaude API) ────────
+  async function sendChat() {
     const input = document.getElementById('chat-input');
     const text = input.value.trim();
     if (!text) return;
+
+    // APIキー未設定なら警告
+    if (!getApiKey()) {
+      alert('Claude APIキーが設定されていません。\n右上の「⚙ 設定」から登録してください。');
+      openSettings();
+      return;
+    }
+
     state.chatMessages.push({ role: 'user', text: escapeHtml(text) });
     input.value = '';
+    // ローディング状態を追加
+    state.chatMessages.push({ role: 'loading', text: '' });
     renderChat();
 
-    setTimeout(() => {
+    try {
+      const reply = await callClaudeAPI(text);
+      // ローディングを削除して正式応答を追加
+      state.chatMessages = state.chatMessages.filter(m => m.role !== 'loading');
       state.chatMessages.push({
         role: 'assistant',
-        text: '承知しました。「' + escapeHtml(text) + '」について考えてみます。<br><br><span style="color: #888780; font-size: 11px;">※ プロトタイプなのでダミー応答です。本番ではClaude APIに接続します。</span>'
+        text: escapeHtml(reply).replace(/\n/g, '<br>')
       });
-      renderChat();
-    }, 600);
+    } catch (e) {
+      console.error(e);
+      state.chatMessages = state.chatMessages.filter(m => m.role !== 'loading');
+      state.chatMessages.push({
+        role: 'assistant',
+        text: '<span style="color: #A32D2D;">⚠ エラー: ' + escapeHtml(e.message || '不明なエラー') + '</span><br><span style="color: #888780; font-size: 11px;">APIキーが正しいか、ネットワーク接続を確認してください。</span>'
+      });
+    }
+    renderChat();
   }
 
   function renderChat() {
     const messages = document.getElementById('chat-messages');
-    messages.innerHTML = state.chatMessages.map(m => `
-      <div class="chat-msg ${m.role}">
-        <div class="chat-msg-meta">${m.role === 'user' ? '山口' : 'Claude'}</div>
-        <div class="chat-msg-bubble">${m.text}</div>
-      </div>
-    `).join('');
+    if (!messages) return;
+
+    // APIキー未設定時の案内バナーを上部に
+    const hasKey = !!getApiKey();
+    const userDisplayName = (WEEKLY_CONFIG && WEEKLY_CONFIG.userName) ? WEEKLY_CONFIG.userName.split(/\s+/)[0] : 'あなた';
+
+    let warningHtml = '';
+    if (!hasKey) {
+      warningHtml = `
+        <div class="chat-api-warning">
+          <strong>⚙ Claude APIキーを設定してください</strong><br>
+          設定すると、CONNECT Studio内であなたの営業活動をサポートするAIアシスタントが使えるようになります。
+          <br>
+          <button onclick="openSettings()">設定を開く</button>
+        </div>
+      `;
+    }
+
+    messages.innerHTML = warningHtml + state.chatMessages.map(m => {
+      if (m.role === 'loading') {
+        return `
+          <div class="chat-msg assistant">
+            <div class="chat-msg-meta">Claude</div>
+            <div class="chat-msg-bubble"><span class="chat-spinner"></span>応答を生成中...</div>
+          </div>
+        `;
+      }
+      return `
+        <div class="chat-msg ${m.role}">
+          <div class="chat-msg-meta">${m.role === 'user' ? escapeHtml(userDisplayName) : 'Claude'}</div>
+          <div class="chat-msg-bubble">${m.text}</div>
+        </div>
+      `;
+    }).join('');
     messages.scrollTop = messages.scrollHeight;
   }
 
@@ -1281,6 +1572,8 @@ const USER_MAP = {
     renderFocus();
     renderTodaysNote();
     renderWorkshopLog();
+    // 本日の予定(カレンダー)を非同期取得
+    renderScheduleSection();
     // ユーザーが解決できれば、スプレッドシートから取得 → KPIとコーチを描画
     if (CURRENT_USER_KEY != null && USER_MAP[CURRENT_USER_KEY] !== undefined) {
       renderKPILoading();
@@ -1291,6 +1584,173 @@ const USER_MAP = {
       renderUserRequired();
     }
   }
+
+  // ──────── 本日の予定(個人カレンダー) ────────
+  function renderScheduleSection() {
+    const c = document.getElementById('schedule-container');
+    if (!c) return;
+
+    // ユーザー未指定なら案内
+    if (!CURRENT_USER_KEY || USER_MAP[CURRENT_USER_KEY] === undefined) {
+      c.innerHTML = `
+        <p class="panel-title">本日の予定</p>
+        <div class="schedule-loading">ユーザーを指定してください</div>
+      `;
+      return;
+    }
+
+    // 取得対象のカレンダーIDを決定(個人 → なければ共通)
+    const personalCal = CALENDAR_MAP[CURRENT_USER_KEY];
+    const calendarId = personalCal || SHARED_CALENDAR_ID;
+
+    c.innerHTML = `
+      <p class="panel-title">本日の予定 <span style="color: #888780; font-weight: 400; font-size: 10px;">${personalCal ? '/ 個人' : '/ 共通'}</span></p>
+      <div class="schedule-loading">📅 カレンダーを読み込み中...</div>
+    `;
+
+    fetchTodayEvents(calendarId).then(events => {
+      renderScheduleEvents(c, events, !!personalCal);
+    }).catch(err => {
+      console.error('Calendar fetch error:', err);
+      c.innerHTML = `
+        <p class="panel-title">本日の予定</p>
+        <div class="schedule-empty">カレンダーを読み込めませんでした<br><span style="font-size: 10px; color: #A32D2D;">${escapeHtml(err.message || '')}</span></div>
+      `;
+    });
+  }
+
+  // 公開カレンダーのicalフィードを取得して、今日のイベントだけ抽出
+  async function fetchTodayEvents(calendarId) {
+    // Google Calendar の public ical URL
+    const url = `https://calendar.google.com/calendar/ical/${encodeURIComponent(calendarId)}/public/basic.ics`;
+    // CORS対策のため、Netlify上で動くにはブラウザから直接読めるカレンダーが必要
+    // 公開カレンダーなら Access-Control-Allow-Origin: * が返るので、fetchで読める
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status + ' (公開設定を確認)');
+    const ics = await res.text();
+    return parseICSForToday(ics);
+  }
+
+  // ICSをパースして「今日」のイベントを抽出
+  function parseICSForToday(ics) {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = today.getMonth();
+    const d = today.getDate();
+    const dayStart = new Date(y, m, d, 0, 0, 0);
+    const dayEnd = new Date(y, m, d, 23, 59, 59);
+
+    // VEVENTブロックを抽出
+    const events = [];
+    const blocks = ics.split('BEGIN:VEVENT').slice(1);
+    for (const blk of blocks) {
+      const end = blk.indexOf('END:VEVENT');
+      const body = end >= 0 ? blk.slice(0, end) : blk;
+      const ev = parseVEvent(body);
+      if (!ev) continue;
+      // 終日イベント or 時間あり
+      if (isWithinDay(ev, dayStart, dayEnd)) {
+        events.push(ev);
+      }
+    }
+    // 開始時刻順
+    events.sort((a, b) => (a.start || 0) - (b.start || 0));
+    return events;
+  }
+
+  function parseVEvent(body) {
+    // 行を結合(改行+スペースは継続行)
+    const text = body.replace(/\r\n[ \t]/g, '').replace(/\n[ \t]/g, '');
+    const lines = text.split(/\r?\n/);
+    const ev = { allDay: false };
+    for (const line of lines) {
+      if (!line) continue;
+      // RRULEなどはスキップ(簡易実装)
+      if (line.startsWith('SUMMARY')) {
+        const idx = line.indexOf(':');
+        if (idx >= 0) ev.summary = unescapeICS(line.slice(idx + 1));
+      } else if (line.startsWith('DTSTART')) {
+        ev.start = parseICSDate(line);
+        ev.allDay = isAllDayLine(line);
+      } else if (line.startsWith('DTEND')) {
+        ev.end = parseICSDate(line);
+      }
+    }
+    return ev.summary ? ev : null;
+  }
+
+  function isAllDayLine(line) {
+    return /VALUE=DATE(?!-TIME)/i.test(line);
+  }
+
+  function unescapeICS(s) {
+    return s.replace(/\\n/g, '\n').replace(/\\,/g, ',').replace(/\\;/g, ';').replace(/\\\\/g, '\\');
+  }
+
+  function parseICSDate(line) {
+    // 値部分を取り出す
+    const idx = line.indexOf(':');
+    if (idx < 0) return null;
+    const val = line.slice(idx + 1).trim();
+    // 形式: 20260427T010000Z(UTC) / 20260427T100000(local) / 20260427(date)
+    if (/^\d{8}$/.test(val)) {
+      // 終日
+      return new Date(parseInt(val.slice(0, 4)), parseInt(val.slice(4, 6)) - 1, parseInt(val.slice(6, 8)), 0, 0, 0);
+    }
+    const m = val.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z?)$/);
+    if (m) {
+      const [_, y, mo, d, h, mi, s, z] = m;
+      if (z === 'Z') {
+        return new Date(Date.UTC(+y, +mo - 1, +d, +h, +mi, +s));
+      } else {
+        return new Date(+y, +mo - 1, +d, +h, +mi, +s);
+      }
+    }
+    return null;
+  }
+
+  function isWithinDay(ev, dayStart, dayEnd) {
+    if (!ev.start) return false;
+    if (ev.allDay) {
+      // 終日:start日が今日と一致
+      return ev.start.getFullYear() === dayStart.getFullYear()
+        && ev.start.getMonth() === dayStart.getMonth()
+        && ev.start.getDate() === dayStart.getDate();
+    }
+    return ev.start >= dayStart && ev.start <= dayEnd;
+  }
+
+  function renderScheduleEvents(c, events, isPersonal) {
+    const colors = ['amber', 'purple', 'teal', 'gray'];
+    if (events.length === 0) {
+      c.innerHTML = `
+        <p class="panel-title">本日の予定 <span style="color: #888780; font-weight: 400; font-size: 10px;">${isPersonal ? '/ 個人' : '/ 共通'}</span></p>
+        <div class="schedule-empty">今日は予定がありません 🌿</div>
+      `;
+      return;
+    }
+    c.innerHTML = `
+      <p class="panel-title">本日の予定 <span style="color: #888780; font-weight: 400; font-size: 10px;">${isPersonal ? '/ 個人' : '/ 共通'} ${events.length}件</span></p>
+      <div class="schedule-list">
+        ${events.map((ev, i) => {
+          const timeLabel = ev.allDay ? '終日' : (ev.start ? formatTime(ev.start) : '');
+          return `
+            <div class="schedule-item ${colors[i % colors.length]}">
+              <div class="schedule-time">${escapeHtml(timeLabel)}</div>
+              <div class="schedule-title">${escapeHtml(ev.summary || '(タイトルなし)')}</div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  function formatTime(d) {
+    const h = String(d.getHours()).padStart(2, '0');
+    const m = String(d.getMinutes()).padStart(2, '0');
+    return `${h}:${m}`;
+  }
+
 
   function resolveUserFromURL() {
     const params = new URLSearchParams(window.location.search);
@@ -1662,6 +2122,31 @@ const USER_MAP = {
   renderMail();
   updateResumeBadge();
 </script>
+
+<!-- 設定モーダル -->
+<div class="settings-modal-bg" id="settings-modal-bg" onclick="if(event.target===this)closeSettings()">
+  <div class="settings-modal">
+    <h3>⚙ 設定</h3>
+    <div class="settings-row">
+      <label class="settings-label" for="settings-api-key">Claude APIキー</label>
+      <input type="password" id="settings-api-key" class="settings-input"
+             placeholder="sk-ant-api03-..." autocomplete="off" spellcheck="false">
+      <p class="settings-help">
+        Anthropic Console(<a href="https://console.anthropic.com/" target="_blank" rel="noopener">console.anthropic.com</a>)で取得したAPIキーを入力してください。
+        キーはこのブラウザにのみ保存され、サーバーには送信されません。
+      </p>
+      <div class="settings-warning">
+        ⚠ <strong>注意:</strong> このキーはブラウザ内に保存されます。本番運用ではバックエンド経由での利用を推奨します。
+        共有PCでは利用後に「APIキーを削除」してください。
+      </div>
+    </div>
+    <div class="settings-actions">
+      <button class="settings-clear" onclick="clearSettings()">APIキーを削除</button>
+      <button class="settings-cancel" onclick="closeSettings()">キャンセル</button>
+      <button class="settings-save" onclick="saveSettings()">保存</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
