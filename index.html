@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>CONNECT Studio - v12 / フル幅 + Claude連携 + 個人カレンダー</title>
+<title>CONNECT Studio - v13 / 毎日開きたくなる改善</title>
 
 <script>
 /* ════════════════════════════════════════════════════════════════
@@ -92,15 +92,34 @@ const USER_MAP = {
 //   公開設定されているカレンダーIDを指定すれば、
 //   その人の今日の予定を「本日の予定」セクションに自動表示します。
 //   未指定のユーザーは共通カレンダーから取得します。
+// 「本日のToDo」表示用カレンダー(全ユーザー共通)
+//   現在は Todoist と連携した Google カレンダーを表示しています。
+//   個人別に切り替えたくなった場合は CALENDAR_MAP を使用してください。
 const CALENDAR_MAP = {
-  yamaguchi: 'gckj4029@gmail.com',
-  // asami:     '...',
-  // sato:      '...',
-  // ... 必要に応じて追加
+  // 例: yamaguchi: 'xxxxx@group.calendar.google.com',
 };
 
-// 全員に表示する共通カレンダー(個人カレンダー未設定時のフォールバック)
-const SHARED_CALENDAR_ID = 't54og1i2tbdrhg0pj0a0ngv4fg@group.calendar.google.com';
+// 全員共通の Todoist カレンダー
+const SHARED_CALENDAR_ID = 'vnh03g7usf9ems18h7qampaeis@group.calendar.google.com';
+
+// ── 今日のモチベーションメッセージ(日付シードでランダム表示) ──
+const MOTIVATION_MESSAGES = [
+  '今日の一歩が、来月の結果をつくる',
+  '小さな連絡が、大きな縁をつなぐ',
+  '会わない理由より、会う理由を探そう',
+  '迷ったら、相手が喜ぶ方を選ぶ',
+  '断られた数だけ、見つかる縁がある',
+  'いい仕事は、いい段取りから始まる',
+  '今日のひと工夫が、明日の自信になる',
+  '相手の名前を呼ぶことから、信頼は始まる',
+  '昨日の自分より、半歩だけ前へ',
+  'スピードは最大の誠意',
+  '丁寧さは、最強の差別化',
+  '一本の電話が、未来を変えることがある',
+  '準備した時間だけ、本番は楽になる',
+  '迷ったらやる、やらない後悔はもう作らない',
+  '誰かのいい一日を、自分でつくる',
+];
 </script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -472,6 +491,78 @@ const SHARED_CALENDAR_ID = 't54og1i2tbdrhg0pj0a0ngv4fg@group.calendar.google.com
     text-align: center; font-style: italic;
   }
 
+  /* === モチベーションバナー(画面上部) === */
+  .motivation-banner {
+    margin: 0;
+    padding: 14px 24px;
+    background: linear-gradient(90deg, #FFFEFA 0%, #FAEEDA 50%, #FFFEFA 100%);
+    border-bottom: 0.5px solid #EF9F27;
+    display: flex; align-items: center; gap: 12px;
+    font-size: 13px; line-height: 1.5;
+  }
+  .motivation-eyebrow {
+    font-size: 10px; color: #854F0B;
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+  }
+  .motivation-text {
+    color: #2C2C2A;
+    font-weight: 500;
+  }
+
+  /* === チェック時のアニメーション(✨ 飛び出し) === */
+  .focus-check.checked {
+    animation: checkPop 0.3s ease;
+  }
+  @keyframes checkPop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.4); }
+    100% { transform: scale(1); }
+  }
+  .sparkle-burst {
+    position: absolute;
+    pointer-events: none;
+    font-size: 16px;
+    animation: sparkle 0.8s ease-out forwards;
+  }
+  @keyframes sparkle {
+    0% { opacity: 0; transform: translate(0, 0) scale(0.5); }
+    30% { opacity: 1; }
+    100% { opacity: 0; transform: translate(var(--dx, 20px), var(--dy, -20px)) scale(1.2); }
+  }
+
+  /* === フォーカス進捗バー === */
+  .focus-progress-wrap {
+    margin-top: 10px;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 10px; color: #888780;
+  }
+  .focus-progress-bar {
+    flex: 1; height: 5px;
+    background: #F1EFE8; border-radius: 3px; overflow: hidden;
+  }
+  .focus-progress-fill {
+    height: 100%; background: linear-gradient(90deg, #FAC775 0%, #639922 100%);
+    transition: width 0.5s ease;
+    border-radius: 3px;
+  }
+  .focus-celebration {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: linear-gradient(135deg, #EAF3DE 0%, #FFFEFA 100%);
+    border: 0.5px solid #639922;
+    border-radius: 8px;
+    font-size: 11px; color: #173404;
+    text-align: center;
+    line-height: 1.6;
+    display: none;
+  }
+  .focus-celebration.show { display: block; animation: celebrate 0.5s ease; }
+  @keyframes celebrate {
+    0% { transform: scale(0.95); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
   /* === 個人別KPI(コンパクト6項目)=== */
   .kpi-mini-grid {
     display: grid;
@@ -787,6 +878,12 @@ const SHARED_CALENDAR_ID = 't54og1i2tbdrhg0pj0a0ngv4fg@group.calendar.google.com
     </div>
   </div>
 
+  <!-- モチベーションバナー -->
+  <div class="motivation-banner" id="motivation-banner">
+    <span class="motivation-eyebrow">✨ TODAY'S WORD</span>
+    <span class="motivation-text" id="motivation-text">—</span>
+  </div>
+
   <div class="body-grid">
 
     <!-- 左サイド -->
@@ -1093,7 +1190,7 @@ const SHARED_CALENDAR_ID = 't54og1i2tbdrhg0pj0a0ngv4fg@group.calendar.google.com
 
   <div class="footer">
     <span class="footer-text">Built by us, for us. — CONNECT Studio</span>
-    <span class="footer-note">v12 / フル幅 + Claude API + 個人カレンダー</span>
+    <span class="footer-note">v13 / Todoist連携・モチベーション・チームログ強化</span>
   </div>
 
 </div>
@@ -1566,13 +1663,16 @@ const SHARED_CALENDAR_ID = 't54og1i2tbdrhg0pj0a0ngv4fg@group.calendar.google.com
 
   function renderWeeklyConfig() {
     if (typeof WEEKLY_CONFIG === 'undefined') return;
+    // モチベーションメッセージ(URL不要・最初に表示)
+    renderMotivation();
     // URLパラメータからユーザー解決
     resolveUserFromURL();
     // 即時描画(WEEKLY_CONFIG由来の部分)
     renderFocus();
     renderTodaysNote();
+    // 工房ログは初期表示(WEEKLY_CONFIG由来)→ スプレッドシートから取れたら上書き
     renderWorkshopLog();
-    // 本日の予定(カレンダー)を非同期取得
+    // 本日のToDo(Todoistカレンダー)を非同期取得
     renderScheduleSection();
     // ユーザーが解決できれば、スプレッドシートから取得 → KPIとコーチを描画
     if (CURRENT_USER_KEY != null && USER_MAP[CURRENT_USER_KEY] !== undefined) {
@@ -1583,6 +1683,18 @@ const SHARED_CALENDAR_ID = 't54og1i2tbdrhg0pj0a0ngv4fg@group.calendar.google.com
       // URL未指定 / 不明ユーザー → 案内表示
       renderUserRequired();
     }
+    // チームログはユーザー指定なしでも描画(全員のデータを引っ張る)
+    fetchAllUsersAndRenderTeamLog();
+  }
+
+  // ─────── モチベーションメッセージ(日付シード) ───────
+  function renderMotivation() {
+    const el = document.getElementById('motivation-text');
+    if (!el) return;
+    const today = new Date();
+    const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+    const idx = seed % MOTIVATION_MESSAGES.length;
+    el.textContent = MOTIVATION_MESSAGES[idx];
   }
 
   // ──────── 本日の予定(個人カレンダー) ────────
@@ -1593,19 +1705,19 @@ const SHARED_CALENDAR_ID = 't54og1i2tbdrhg0pj0a0ngv4fg@group.calendar.google.com
     // ユーザー未指定なら案内
     if (!CURRENT_USER_KEY || USER_MAP[CURRENT_USER_KEY] === undefined) {
       c.innerHTML = `
-        <p class="panel-title">本日の予定</p>
+        <p class="panel-title">本日のToDo</p>
         <div class="schedule-loading">ユーザーを指定してください</div>
       `;
       return;
     }
 
-    // 取得対象のカレンダーIDを決定(個人 → なければ共通)
+    // 取得対象のカレンダーIDを決定(個人 → なければ共通Todoist)
     const personalCal = CALENDAR_MAP[CURRENT_USER_KEY];
     const calendarId = personalCal || SHARED_CALENDAR_ID;
 
     c.innerHTML = `
-      <p class="panel-title">本日の予定 <span style="color: #888780; font-weight: 400; font-size: 10px;">${personalCal ? '/ 個人' : '/ 共通'}</span></p>
-      <div class="schedule-loading">📅 カレンダーを読み込み中...</div>
+      <p class="panel-title">本日のToDo <span style="color: #888780; font-weight: 400; font-size: 10px;">${personalCal ? '/ 個人' : '/ Todoist'}</span></p>
+      <div class="schedule-loading">📋 読み込み中...</div>
     `;
 
     fetchTodayEvents(calendarId).then(events => {
@@ -1613,8 +1725,8 @@ const SHARED_CALENDAR_ID = 't54og1i2tbdrhg0pj0a0ngv4fg@group.calendar.google.com
     }).catch(err => {
       console.error('Calendar fetch error:', err);
       c.innerHTML = `
-        <p class="panel-title">本日の予定</p>
-        <div class="schedule-empty">カレンダーを読み込めませんでした<br><span style="font-size: 10px; color: #A32D2D;">${escapeHtml(err.message || '')}</span></div>
+        <p class="panel-title">本日のToDo</p>
+        <div class="schedule-empty">読み込めませんでした<br><span style="font-size: 10px; color: #A32D2D;">${escapeHtml(err.message || '')}</span></div>
       `;
     });
   }
@@ -1722,15 +1834,16 @@ const SHARED_CALENDAR_ID = 't54og1i2tbdrhg0pj0a0ngv4fg@group.calendar.google.com
 
   function renderScheduleEvents(c, events, isPersonal) {
     const colors = ['amber', 'purple', 'teal', 'gray'];
+    const sourceLabel = isPersonal ? '/ 個人' : '/ Todoist';
     if (events.length === 0) {
       c.innerHTML = `
-        <p class="panel-title">本日の予定 <span style="color: #888780; font-weight: 400; font-size: 10px;">${isPersonal ? '/ 個人' : '/ 共通'}</span></p>
-        <div class="schedule-empty">今日は予定がありません 🌿</div>
+        <p class="panel-title">本日のToDo <span style="color: #888780; font-weight: 400; font-size: 10px;">${sourceLabel}</span></p>
+        <div class="schedule-empty">今日のタスクはありません ✅</div>
       `;
       return;
     }
     c.innerHTML = `
-      <p class="panel-title">本日の予定 <span style="color: #888780; font-weight: 400; font-size: 10px;">${isPersonal ? '/ 個人' : '/ 共通'} ${events.length}件</span></p>
+      <p class="panel-title">本日のToDo <span style="color: #888780; font-weight: 400; font-size: 10px;">${sourceLabel} ${events.length}件</span></p>
       <div class="schedule-list">
         ${events.map((ev, i) => {
           const timeLabel = ev.allDay ? '終日' : (ev.start ? formatTime(ev.start) : '');
@@ -2057,6 +2170,13 @@ const SHARED_CALENDAR_ID = 't54og1i2tbdrhg0pj0a0ngv4fg@group.calendar.google.com
           </div>
         `).join('')}
       </div>
+      <div class="focus-progress-wrap">
+        <div class="focus-progress-bar">
+          <div class="focus-progress-fill" id="focus-progress-fill" style="width: 0%;"></div>
+        </div>
+        <span id="focus-progress-label">0/${items.length}件 完了</span>
+      </div>
+      <div class="focus-celebration" id="focus-celebration"></div>
     `;
   }
 
@@ -2068,6 +2188,137 @@ const SHARED_CALENDAR_ID = 't54og1i2tbdrhg0pj0a0ngv4fg@group.calendar.google.com
       <p class="panel-eyebrow">TODAY'S NOTE</p>
       <p class="note-box">${escapeHtml(WEEKLY_CONFIG.todaysNote || '')}</p>
     `;
+  }
+
+  // ─────── チームログ(スプレッドシートから全員のデータ) ───────
+  async function fetchAllUsersAndRenderTeamLog() {
+    try {
+      const url = `https://docs.google.com/spreadsheets/d/${SHEET_CONFIG.sheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_CONFIG.sheetName)}&range=${encodeURIComponent(SHEET_CONFIG.range)}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const text = await res.text();
+      const m = text.match(/setResponse\(([\s\S]+)\);?\s*$/);
+      if (!m) throw new Error('レスポンスのパースに失敗');
+      const data = JSON.parse(m[1]);
+      const rows = (data.table && data.table.rows) || [];
+      // rows[0]はヘッダー、rows[1]以降が個人データ
+      const allUsers = [];
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || !row.c) continue;
+        const u = extractUserData(row);
+        if (!u.name) continue;
+        allUsers.push(u);
+      }
+      renderTeamWorkshopLog(allUsers);
+    } catch (e) {
+      console.warn('Team log fetch failed, fallback to WEEKLY_CONFIG:', e);
+      // 失敗時はそのまま WEEKLY_CONFIG.workshopLog を使う(renderWorkshopLogが既に呼ばれている)
+    }
+  }
+
+  function renderTeamWorkshopLog(allUsers) {
+    const c = document.getElementById('log-container');
+    if (!c) return;
+
+    // 動きのある投稿候補を生成
+    const items = [];
+
+    // 達成率100%超の人(全員)
+    const achieved = allUsers.filter(u => normalizeRateToPercent(u.rate) >= 100);
+    achieved.forEach(u => {
+      items.push({
+        color: 'green',
+        text: `🎉 ${u.name}さん、目標達成! (${normalizeRateToPercent(u.rate).toFixed(0)}%)`,
+      });
+    });
+
+    // 達成率80%以上(達成者除く)
+    const closing = allUsers
+      .filter(u => {
+        const p = normalizeRateToPercent(u.rate);
+        return p >= 80 && p < 100;
+      })
+      .sort((a, b) => normalizeRateToPercent(b.rate) - normalizeRateToPercent(a.rate))
+      .slice(0, 2);
+    closing.forEach(u => {
+      items.push({
+        color: 'amber',
+        text: `🔥 ${u.name}さん、達成率 ${normalizeRateToPercent(u.rate).toFixed(0)}%`,
+      });
+    });
+
+    // 決定数の多い順 上位2名
+    const topDecisions = [...allUsers]
+      .filter(u => u.decisions > 0)
+      .sort((a, b) => b.decisions - a.decisions)
+      .slice(0, 2);
+    topDecisions.forEach(u => {
+      items.push({
+        color: 'green',
+        text: `⭐ ${u.name}さん、今月決定 ${u.decisions} 件`,
+      });
+    });
+
+    // 面接数の多い順 上位2名
+    const topInterviews = [...allUsers]
+      .filter(u => u.interviews > 0)
+      .sort((a, b) => b.interviews - a.interviews)
+      .slice(0, 2);
+    topInterviews.forEach(u => {
+      items.push({
+        color: 'purple',
+        text: `🎯 ${u.name}さん、今月面接 ${u.interviews} 件`,
+      });
+    });
+
+    // 重複除去(同じテキストは1つに)
+    const seen = new Set();
+    const unique = items.filter(it => {
+      if (seen.has(it.text)) return false;
+      seen.add(it.text);
+      return true;
+    });
+
+    // 候補がなければ WEEKLY_CONFIG にフォールバック
+    if (unique.length === 0) {
+      renderWorkshopLog();
+      return;
+    }
+
+    // 日付シードでシャッフルして上位6件
+    const seed = (() => {
+      const t = new Date();
+      return t.getFullYear() * 10000 + (t.getMonth() + 1) * 100 + t.getDate();
+    })();
+    const shuffled = seededShuffle(unique, seed).slice(0, 6);
+
+    c.innerHTML = `
+      <p class="panel-title">チームの動き <span style="color: #888780; font-weight: 400; font-size: 10px;">/ リアルタイム</span></p>
+      <div class="log-list">
+        ${shuffled.map(item => `
+          <div class="log-item">
+            <div class="log-dot ${item.color}"></div>
+            <div>
+              <div class="log-time">いま</div>
+              <div class="log-text">${escapeHtml(item.text)}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  // 日付シードで配列をシャッフル(同日中は同じ並び)
+  function seededShuffle(arr, seed) {
+    const a = arr.slice();
+    let s = seed;
+    for (let i = a.length - 1; i > 0; i--) {
+      s = (s * 9301 + 49297) % 233280;
+      const j = Math.floor((s / 233280) * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
   }
 
   // ⑤ 工房ログ
@@ -2109,11 +2360,62 @@ const SHARED_CALENDAR_ID = 't54og1i2tbdrhg0pj0a0ngv4fg@group.calendar.google.com
 
   // ════════════════════════════════════════════════════════════════
 
-  // === 今週のフォーカス チェックトグル ===
+  // === 今週のフォーカス チェックトグル + アニメーション + 進捗 ===
   function toggleFocus(item) {
     const check = item.querySelector('.focus-check');
+    const wasChecked = check.classList.contains('checked');
     check.classList.toggle('checked');
     item.classList.toggle('done');
+
+    // チェックが入った時だけスパークルアニメーション
+    if (!wasChecked) {
+      spawnSparkles(check);
+    }
+
+    updateFocusProgress();
+  }
+
+  function spawnSparkles(target) {
+    const rect = target.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const symbols = ['✨', '🎉', '⭐', '✨'];
+    for (let i = 0; i < 4; i++) {
+      const s = document.createElement('div');
+      s.className = 'sparkle-burst';
+      s.textContent = symbols[i % symbols.length];
+      s.style.left = cx + 'px';
+      s.style.top = cy + 'px';
+      const angle = (Math.PI * 2 * i) / 4 + Math.random() * 0.5;
+      const dist = 30 + Math.random() * 20;
+      s.style.setProperty('--dx', Math.cos(angle) * dist + 'px');
+      s.style.setProperty('--dy', Math.sin(angle) * dist + 'px');
+      document.body.appendChild(s);
+      setTimeout(() => s.remove(), 900);
+    }
+  }
+
+  function updateFocusProgress() {
+    const items = document.querySelectorAll('#focus-container .focus-item');
+    if (items.length === 0) return;
+    const done = document.querySelectorAll('#focus-container .focus-item.done').length;
+    const total = items.length;
+    const pct = Math.round((done / total) * 100);
+
+    const fill = document.getElementById('focus-progress-fill');
+    const label = document.getElementById('focus-progress-label');
+    const celeb = document.getElementById('focus-celebration');
+    if (fill) fill.style.width = pct + '%';
+    if (label) label.textContent = `${done}/${total}件 完了`;
+
+    if (celeb) {
+      if (done === total && total > 0) {
+        celeb.classList.add('show');
+        celeb.innerHTML = '🎊 今週のフォーカス、全部達成しました!';
+      } else {
+        celeb.classList.remove('show');
+      }
+    }
   }
 
   // 初期化
