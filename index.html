@@ -1,21 +1,33 @@
 <!DOCTYPE html>
+
 <html lang="ja">
+
 <head>
+
 <meta charset="UTF-8">
+
 <title>CONNECT Studio - v13 / 毎日開きたくなる改善</title>
 
 <script>
+
 /* ════════════════════════════════════════════════════════════════
+
  ★★★ 毎週の更新はここ! ★★★
+
  ★★★ 毎週の更新はここ! ★★★
+
  ★★★ 毎週の更新はここ! ★★★
+
 ════════════════════════════════════════════════════════════════════
 
   📝 毎週月曜日にこの WEEKLY_CONFIG だけ書き換えればOK!
+
   HTML や CSS の知識は不要です。下記のルールだけ守ってください:
 
   ✅ 数字や文章の中身だけを書き換える
+
   ✅ カンマ「,」と引用符「"」「'」は触らない
+
   ✅ { } [ ] の括弧も触らない
 
   ❌ ⬇⬇⬇ 編集してはいけないコードは、このブロックの下にあります ⬇⬇⬇
@@ -25,2430 +37,977 @@
 const WEEKLY_CONFIG = {
 
   // 👤 今週の担当者名(ヘッダーに表示)
+
   userName: "山口 孝二",
 
   // 📊 営業進捗(今月の数字)
+
   kpi: {
+
     talks:     { current: 12,  target: 20  },   // 商談数
+
     contracts: { current: 3,   target: 5   },   // 成約数
+
     sales:     { current: 180, target: 300 },   // 売上(万円)
+
     momChange:   "+8%",   // 前月比(例: "+8%" or "-3%")
+
     momPositive: true,    // 前月比がプラスなら true / マイナスなら false
+
   },
 
   // 💡 今日のAIコーチメッセージ(毎週書き換え)
+
   coachMessage: "今日は13:30に誠さんとの1on1があります。先週の進捗と今週の優先事項を3点まとめておくと、会議がより充実します。",
 
   // 🎯 今週のフォーカス(3項目)
+
   weeklyFocus: [
+
     "クライアントA社のフォローアップ連絡",
+
     "新規候補者3名のスカウト送信",
+
     "月次レポートの作成(金曜締め)",
+
   ],
 
   // 📋 TODAY'S NOTE(チームへのひとこと)
+
   todaysNote: "誠さんが履歴書変換ツール v0.8.2 をデプロイ。精度が一歩前進。",
 
   // 🔨 工房ログ(最新3件)
+
   workshopLog: [
+
     { time: "10分前",  text: "問い合わせ 4 件" },
+
     { time: "1時間前", text: "v0.8.2 を出荷 🔨" },
+
     { time: "昨日",    text: "新しい仲間候補 12 名" },
+
   ],
 
 };
 
 /* ════════════════════════════════════════════════════════════════
+
    ⬆️ 更新するのはここまで。以下は触らないでください
+
    ════════════════════════════════════════════════════════════════ */
 
 // ── スプレッドシート連携の設定(基本的に触らない)──
+
 const SHEET_CONFIG = {
+
   sheetId: '1iflyQpsbC_nCdsiJcycuQv5ynus8A0d_Omx2Mc010_Y',
+
   sheetName: 'シート1',
-  range: 'A11:S26',  // 11行目=ヘッダー、12〜25行目=個人データ
+
+  range: 'A11:S26',
+
 };
 
-// ── URLキー(?user=xxx) → スプレッドシートの行番号(0始まり、データ部分のみ)──
-//   行番号 = スプレッドシート上の行 - 12  (12行目が0番目)
+// ── URLキー(?user=xxx) → スプレッドシートの行番号 ──
+
 const USER_MAP = {
-  yamaguchi: 0,   // 山口
-  asami:     1,   // 浅見
-  sato:      2,   // 佐藤
-  machida:   3,   // 町田
-  uemura:    4,   // 上村
-  takeuchi:  5,   // 竹内
-  izumi:     6,   // 和泉
-  katoa:     7,   // 加藤愛
-  adachi:    8,   // 安達
-  koguchi:   9,   // 古口
-  suzuki:    10,  // 鈴木
-  katoy:     11,  // 加藤優
-  yamada:    12,  // 山田
-  kase:      13,  // 加瀬
+
+  yamaguchi: 0,
+
+  asami:     1,
+
+  sato:      2,
+
+  machida:   3,
+
+  uemura:    4,
+
+  takeuchi:  5,
+
+  izumi:     6,
+
+  katoa:     7,
+
+  adachi:    8,
+
+  koguchi:   9,
+
+  suzuki:    10,
+
+  katoy:     11,
+
+  yamada:    12,
+
+  kase:      13,
+
 };
 
 // ── ユーザー別 Google カレンダーID ──
-//   公開設定されているカレンダーIDを指定すれば、
-//   その人の今日の予定を「本日の予定」セクションに自動表示します。
-//   未指定のユーザーは共通カレンダーから取得します。
-// 「本日のToDo」表示用カレンダー(全ユーザー共通)
-//   現在は Todoist と連携した Google カレンダーを表示しています。
-//   個人別に切り替えたくなった場合は CALENDAR_MAP を使用してください。
+
 const CALENDAR_MAP = {
+
   // 例: yamaguchi: 'xxxxx@group.calendar.google.com',
+
 };
 
 // 全員共通の Todoist カレンダー
+
 const SHARED_CALENDAR_ID = 'vnh03g7usf9ems18h7qampaeis@group.calendar.google.com';
 
-// ── 今日のモチベーションメッセージ(日付シードでランダム表示) ──
+// ── GAS プロキシURL(CORSを回避してICSを取得) ──
+
+const GAS_PROXY_URL = 'https://script.google.com/macros/s/AKfycbw6hg0faB0l2PXeobBoD3byumi1OScQfdSZ8U16w1YYtaZejg1_KCwwyvjfB8HxyxNt/exec';
+
+// ── 今日のモチベーションメッセージ ──
+
 const MOTIVATION_MESSAGES = [
+
   '今日の一歩が、来月の結果をつくる',
+
   '小さな連絡が、大きな縁をつなぐ',
+
   '会わない理由より、会う理由を探そう',
+
   '迷ったら、相手が喜ぶ方を選ぶ',
+
   '断られた数だけ、見つかる縁がある',
+
   'いい仕事は、いい段取りから始まる',
+
   '今日のひと工夫が、明日の自信になる',
+
   '相手の名前を呼ぶことから、信頼は始まる',
+
   '昨日の自分より、半歩だけ前へ',
+
   'スピードは最大の誠意',
+
   '丁寧さは、最強の差別化',
+
   '一本の電話が、未来を変えることがある',
+
   '準備した時間だけ、本番は楽になる',
+
   '迷ったらやる、やらない後悔はもう作らない',
+
   '誰かのいい一日を、自分でつくる',
+
 ];
+
 </script>
+
 <style>
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
+
   html, body { height: 100%; }
+
   body {
+
     font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+
     background: #EAE5DA; padding: 0; min-width: 1200px;
+
     color: #2C2C2A;
+
     display: flex; flex-direction: column;
+
     min-height: 100vh;
+
   }
+
   .frame {
+
     flex: 1;
+
     max-width: none; margin: 0;
+
     background: #FAF7F2; border-radius: 0;
+
     border: none; overflow: hidden;
+
     box-shadow: none;
+
     display: flex; flex-direction: column;
+
   }
+
   .topbar {
+
     display: flex; justify-content: space-between; align-items: center;
+
     padding: 14px 20px; background: #FFFEFA;
+
     border-bottom: 0.5px solid #D3D1C7;
+
   }
+
   .logo-group { display: flex; align-items: center; gap: 12px; }
+
   .logo-img { width: 36px; height: 36px; object-fit: contain; }
+
   .brand-line { display: flex; align-items: baseline; gap: 10px; }
+
   .brand-name { font-size: 15px; font-weight: 500; letter-spacing: 0.02em; }
+
   .brand-tagline { font-size: 11px; color: #888780; font-style: italic; }
+
   .top-right { display: flex; align-items: center; gap: 14px; }
+
   .date { font-size: 13px; color: #5F5E5A; }
+
   .avatar {
+
     width: 30px; height: 30px; border-radius: 50%;
+
     background: #FAEEDA; border: 0.5px solid #EF9F27;
+
     display: flex; align-items: center; justify-content: center;
+
     font-size: 11px; font-weight: 500; color: #854F0B;
+
   }
 
   .body-grid {
+
     display: grid;
+
     grid-template-columns: 200px minmax(0, 1fr) 280px;
+
     flex: 1; min-height: 0;
+
   }
 
-  /* 左サイド */
   .sidebar-left {
+
     background: #F5F1E8; border-right: 0.5px solid #D3D1C7;
+
     padding: 16px 10px; display: flex; flex-direction: column; gap: 3px;
-  }
-  .section-label { margin: 4px 8px 8px; font-size: 10px; color: #888780; letter-spacing: 0.05em; }
-  .section-label.spaced { margin-top: 18px; }
-  .nav-item {
-    border-radius: 6px; padding: 8px 10px;
-    display: flex; align-items: center; gap: 9px;
-    cursor: pointer; transition: background 0.15s;
-    position: relative;
-  }
-  .nav-item:hover { background: rgba(255,255,255,0.5); }
-  .nav-item.active { background: #FFFEFA; border: 0.5px solid #BA7517; }
-  .nav-item.active[data-pane="claude"] { border-color: #534AB7; }
-  .nav-icon {
-    width: 22px; height: 22px; border-radius: 5px;
-    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  }
-  .nav-label { flex: 1; font-size: 12px; }
-  .nav-label.active { font-weight: 500; }
-  .nav-label.muted { color: #5F5E5A; }
-  .badge-num { font-size: 10px; padding: 1px 6px; border-radius: 8px; font-weight: 500; }
-  .badge-hot { background: #F0997B; color: #4A1B0C; }
-  .badge-mute { background: #F1EFE8; color: #5F5E5A; }
-  .badge-new { background: #C0DD97; color: #173404; }
-  /* 動作中インジケータ */
-  .working-dot {
-    position: absolute; top: 6px; right: 6px;
-    width: 6px; height: 6px; border-radius: 50%;
-    background: #BA7517;
-    animation: pulse 1.4s ease-in-out infinite;
-    display: none;
-  }
-  .nav-item.working .working-dot { display: block; }
-  @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.4; transform: scale(1.4); }
+
   }
 
-  /* メイン */
-  .main-area { display: grid; grid-template-rows: auto 1fr; min-width: 0; min-height: 0; }
-  .breadcrumb {
-    padding: 14px 18px; border-bottom: 0.5px solid #D3D1C7;
-    display: flex; justify-content: space-between; align-items: center;
+  .section-label { margin: 4px 8px 8px; font-size: 10px; color: #888780; letter-spacing: 0.05em; }
+
+  .section-label.spaced { margin-top: 18px; }
+
+  .nav-item {
+
+    border-radius: 6px; padding: 8px 10px;
+
+    display: flex; align-items: center; gap: 9px;
+
+    cursor: pointer; transition: background 0.15s;
+
+    position: relative;
+
   }
+
+  .nav-item:hover { background: rgba(255,255,255,0.5); }
+
+  .nav-item.active { background: #FFFEFA; border: 0.5px solid #BA7517; }
+
+  .nav-item.active[data-pane="claude"] { border-color: #534AB7; }
+
+  .nav-icon {
+
+    width: 22px; height: 22px; border-radius: 5px;
+
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+
+  }
+
+  .nav-label { flex: 1; font-size: 12px; }
+
+  .nav-label.active { font-weight: 500; }
+
+  .nav-label.muted { color: #5F5E5A; }
+
+  .badge-num { font-size: 10px; padding: 1px 6px; border-radius: 8px; font-weight: 500; }
+
+  .badge-hot { background: #F0997B; color: #4A1B0C; }
+
+  .badge-mute { background: #F1EFE8; color: #5F5E5A; }
+
+  .badge-new { background: #C0DD97; color: #173404; }
+
+  .working-dot {
+
+    position: absolute; top: 6px; right: 6px;
+
+    width: 6px; height: 6px; border-radius: 50%;
+
+    background: #BA7517;
+
+    animation: pulse 1.4s ease-in-out infinite;
+
+    display: none;
+
+  }
+
+  .nav-item.working .working-dot { display: block; }
+
+  @keyframes pulse {
+
+    0%, 100% { opacity: 1; transform: scale(1); }
+
+    50% { opacity: 0.4; transform: scale(1.4); }
+
+  }
+
+  .main-area { display: grid; grid-template-rows: auto 1fr; min-width: 0; min-height: 0; }
+
+  .breadcrumb {
+
+    padding: 14px 18px; border-bottom: 0.5px solid #D3D1C7;
+
+    display: flex; justify-content: space-between; align-items: center;
+
+  }
+
   .breadcrumb-text { display: flex; align-items: baseline; gap: 8px; }
+
   .breadcrumb-text h2 { font-size: 14px; font-weight: 500; }
+
   .breadcrumb-path { font-size: 11px; color: #888780; }
+
   .building-badge { font-size: 10px; padding: 3px 9px; border-radius: 10px; font-weight: 500; }
+
   .badge-building { background: #F0997B; color: #4A1B0C; }
+
   .badge-borrowed { background: #F1EFE8; color: #5F5E5A; }
+
   .badge-beta { background: #C0DD97; color: #173404; }
 
   .pane { display: none; height: 100%; min-height: 0; overflow: hidden; }
+
   .pane.active { display: block; }
 
-  /* === Claude チャット === */
   .chat-area { display: grid; grid-template-rows: 1fr auto auto; height: 100%; }
+
   .chat-messages { padding: 20px 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; max-height: 460px; }
+
   .chat-msg { max-width: 80%; }
+
   .chat-msg.user { align-self: flex-end; }
+
   .chat-msg-bubble { padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.7; }
+
   .chat-msg.user .chat-msg-bubble { background: #2C2C2A; color: #FAF7F2; border-bottom-right-radius: 4px; }
+
   .chat-msg.assistant .chat-msg-bubble { background: #FFFEFA; border: 0.5px solid #D3D1C7; border-bottom-left-radius: 4px; }
+
   .chat-msg-meta { font-size: 10px; color: #888780; margin-bottom: 4px; padding: 0 4px; }
+
   .chat-msg.user .chat-msg-meta { text-align: right; }
+
   .chat-suggestions { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 24px 12px; }
+
   .chat-suggestion {
+
     font-size: 11px; padding: 5px 10px;
+
     border: 0.5px dashed #B4B2A9; border-radius: 14px;
+
     background: transparent; color: #5F5E5A;
+
     cursor: pointer; font-family: inherit; transition: all 0.15s;
+
   }
+
   .chat-suggestion:hover { background: #F5F1E8; border-style: solid; }
+
   .chat-input-area {
+
     padding: 12px 16px; border-top: 0.5px solid #D3D1C7;
+
     background: #FFFEFA; display: flex; gap: 10px; align-items: flex-end;
+
   }
+
   .chat-input {
+
     flex: 1; min-height: 40px; max-height: 120px;
+
     padding: 10px 14px; border: 0.5px solid #B4B2A9; border-radius: 8px;
+
     font-family: inherit; font-size: 13px;
+
     background: #FAF7F2; color: #2C2C2A;
+
     resize: none; outline: none; transition: border-color 0.15s;
+
   }
+
   .chat-input:focus { border-color: #534AB7; }
+
   .chat-send {
+
     padding: 10px 16px; background: #2C2C2A; color: #FAF7F2;
+
     border: none; border-radius: 8px;
+
     font-family: inherit; font-size: 12px; font-weight: 500;
+
     cursor: pointer; transition: opacity 0.15s;
+
   }
+
   .chat-send:hover { opacity: 0.85; }
 
-  /* === Mail === */
   .mail-grid { display: grid; grid-template-columns: 220px 1fr; min-width: 0; height: 100%; }
+
   .mail-list { border-right: 0.5px solid #D3D1C7; overflow-y: auto; }
+
   .mail-item { padding: 10px 14px; border-bottom: 0.5px solid #F1EFE8; cursor: pointer; transition: background 0.15s; }
+
   .mail-item:hover { background: #FFFEFA; }
+
   .mail-item.active { background: #FFFEFA; border-left: 3px solid #BA7517; padding-left: 11px; }
+
   .mail-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px; }
+
   .mail-from { font-size: 12px; font-weight: 500; }
+
   .mail-from.read { color: #5F5E5A; }
+
   .mail-time { font-size: 10px; color: #888780; }
+
   .mail-preview { font-size: 11px; color: #5F5E5A; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
   .mail-preview.read { color: #888780; }
+
   .mail-tag { display: inline-block; margin-top: 4px; font-size: 9px; padding: 1px 6px; border-radius: 6px; }
+
   .tag-todo { background: #FAEEDA; color: #854F0B; }
+
   .tag-recruit { background: #EEEDFE; color: #3C3489; }
+
   .tag-done { background: #EAF3DE; color: #173404; }
 
   .mail-body { padding: 18px 22px; min-width: 0; overflow-y: auto; }
+
   .mail-header { margin-bottom: 14px; padding-bottom: 14px; border-bottom: 0.5px solid #F1EFE8; }
+
   .mail-subject { font-size: 15px; font-weight: 500; margin-bottom: 8px; }
+
   .mail-meta { display: flex; align-items: center; gap: 10px; }
+
   .mail-avatar { width: 24px; height: 24px; border-radius: 50%; background: #E1F5EE; color: #0F6E56; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; }
+
   .mail-sender { font-size: 12px; }
+
   .mail-sender .email { color: #888780; }
+
   .mail-datetime { margin-left: auto; font-size: 11px; color: #888780; }
+
   .mail-content { font-size: 13px; line-height: 1.85; color: #2C2C2A; }
+
   .mail-content p { margin-bottom: 11px; }
+
   .mail-content .signature { color: #888780; }
+
   .mail-actions { margin-top: 18px; padding-top: 14px; border-top: 0.5px dashed #B4B2A9; display: flex; gap: 8px; }
+
   .mail-actions button {
+
     font-size: 12px; padding: 6px 12px;
+
     border: 0.5px solid #B4B2A9; border-radius: 6px;
+
     background: #FFFEFA; color: #2C2C2A;
+
     cursor: pointer; font-family: inherit; transition: all 0.15s;
+
   }
+
   .mail-actions button:hover { background: #F5F1E8; }
+
   .mail-actions button.primary { margin-left: auto; }
+
   .mail-actions button.done { background: #EAF3DE; border-color: #639922; color: #173404; }
 
-  /* === 履歴書変換ツール === */
   .resume-area { padding: 22px 24px; height: 100%; overflow-y: auto; }
+
   .resume-section-title { font-size: 13px; font-weight: 500; margin-bottom: 12px; color: #2C2C2A; }
+
   .upload-zone {
+
     border: 1.5px dashed #B4B2A9; border-radius: 8px;
+
     padding: 28px 20px; text-align: center;
+
     background: #FFFEFA; cursor: pointer;
+
     transition: all 0.15s; margin-bottom: 22px;
+
   }
+
   .upload-zone:hover { border-color: #BA7517; background: #FAEEDA40; }
+
   .upload-icon { margin-bottom: 8px; }
+
   .upload-text { font-size: 13px; color: #5F5E5A; margin-bottom: 4px; }
+
   .upload-hint { font-size: 11px; color: #888780; }
+
   .demo-btn {
+
     margin-top: 12px; padding: 6px 14px;
+
     background: #FAC775; border: 0.5px solid #BA7517;
+
     border-radius: 6px; font-size: 11px; font-weight: 500;
+
     color: #412402; cursor: pointer; font-family: inherit;
+
   }
+
   .demo-btn:hover { background: #EF9F27; }
 
   .file-list { display: flex; flex-direction: column; gap: 8px; }
+
   .file-item {
+
     background: #FFFEFA; border: 0.5px solid #D3D1C7;
+
     border-radius: 8px; padding: 12px 14px;
+
     display: flex; align-items: center; gap: 12px;
+
   }
+
   .file-icon {
+
     width: 32px; height: 32px; border-radius: 6px;
+
     background: #F0997B; flex-shrink: 0;
+
     display: flex; align-items: center; justify-content: center;
+
   }
+
   .file-info { flex: 1; min-width: 0; }
+
   .file-name { font-size: 12px; font-weight: 500; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
   .file-status { font-size: 11px; color: #888780; }
+
   .file-progress-wrap {
+
     height: 4px; background: #F1EFE8; border-radius: 2px;
+
     overflow: hidden; margin-top: 6px;
+
   }
+
   .file-progress {
+
     height: 100%; background: #BA7517;
+
     border-radius: 2px; transition: width 0.3s;
+
   }
+
   .file-progress.done { background: #639922; }
+
   .file-action {
+
     font-size: 11px; padding: 5px 10px;
+
     border: 0.5px solid #B4B2A9; border-radius: 6px;
+
     background: #FFFEFA; color: #2C2C2A;
+
     cursor: pointer; font-family: inherit;
+
   }
+
   .file-action.disabled { opacity: 0.4; cursor: not-allowed; }
+
   .file-action:not(.disabled):hover { background: #F5F1E8; }
 
-  /* 右サイド */
   .sidebar-right { background: #F5F1E8; border-left: 0.5px solid #D3D1C7; padding: 16px 14px; display: flex; flex-direction: column; gap: 18px; }
+
   .panel-title { font-size: 12px; font-weight: 500; margin-bottom: 10px; }
+
   .panel-eyebrow { font-size: 10px; color: #888780; letter-spacing: 0.05em; margin-bottom: 6px; }
+
   .note-box { font-size: 11px; line-height: 1.65; }
+
   .schedule-list { display: flex; flex-direction: column; gap: 10px; }
+
   .schedule-item { padding-left: 10px; border-left: 2px solid; }
+
   .schedule-item.amber { border-color: #BA7517; }
+
   .schedule-item.purple { border-color: #534AB7; }
+
   .schedule-item.teal { border-color: #0F6E56; }
+
   .schedule-item.gray { border-color: #888780; }
+
   .schedule-time { font-size: 10px; color: #5F5E5A; font-variant-numeric: tabular-nums; }
+
   .schedule-title { font-size: 11px; font-weight: 500; }
+
   .log-list { display: flex; flex-direction: column; gap: 10px; }
+
   .log-item { display: flex; gap: 7px; }
+
   .log-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+
   .log-dot.amber { background: #BA7517; }
+
   .log-dot.green { background: #639922; }
+
   .log-dot.purple { background: #534AB7; }
+
   .log-time { font-size: 10px; color: #888780; }
+
   .log-text { font-size: 11px; line-height: 1.45; }
 
-  /* === 設定パネル(右上)=== */
   .settings-trigger {
+
     background: transparent; border: 0.5px solid #B4B2A9;
+
     border-radius: 6px; padding: 5px 10px;
+
     font-size: 11px; cursor: pointer; font-family: inherit;
+
     color: #5F5E5A; transition: all 0.15s;
-  }
-  .settings-trigger:hover { border-color: #BA7517; color: #2C2C2A; }
-  .settings-modal-bg {
-    display: none;
-    position: fixed; inset: 0;
-    background: rgba(44, 44, 42, 0.4);
-    z-index: 1000; align-items: center; justify-content: center;
-  }
-  .settings-modal-bg.open { display: flex; }
-  .settings-modal {
-    background: #FAF7F2;
-    border: 0.5px solid #D3D1C7;
-    border-radius: 12px;
-    padding: 24px;
-    width: 480px; max-width: 90vw;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
-  }
-  .settings-modal h3 {
-    font-size: 15px; font-weight: 500; margin-bottom: 16px;
-  }
-  .settings-row { margin-bottom: 16px; }
-  .settings-label {
-    display: block;
-    font-size: 12px; color: #5F5E5A;
-    margin-bottom: 6px;
-  }
-  .settings-input {
-    width: 100%;
-    padding: 10px 12px;
-    border: 0.5px solid #B4B2A9;
-    border-radius: 6px;
-    font-size: 12px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    background: #FFFEFA; color: #2C2C2A;
-    outline: none; box-sizing: border-box;
-  }
-  .settings-input:focus { border-color: #534AB7; }
-  .settings-help {
-    font-size: 11px; color: #888780;
-    margin-top: 6px; line-height: 1.6;
-  }
-  .settings-help a { color: #534AB7; }
-  .settings-warning {
-    margin-top: 10px;
-    padding: 8px 10px;
-    background: #FCEBEB;
-    border: 0.5px solid #F0997B;
-    border-radius: 6px;
-    font-size: 10px; color: #4A1B0C;
-    line-height: 1.6;
-  }
-  .settings-actions {
-    display: flex; justify-content: flex-end; gap: 8px;
-    margin-top: 20px; padding-top: 16px;
-    border-top: 0.5px solid #D3D1C7;
-  }
-  .settings-actions button {
-    padding: 8px 16px; border-radius: 6px;
-    font-size: 12px; font-weight: 500;
-    cursor: pointer; font-family: inherit;
-    transition: all 0.15s;
-  }
-  .settings-cancel {
-    background: transparent; border: 0.5px solid #B4B2A9;
-    color: #5F5E5A;
-  }
-  .settings-save {
-    background: #2C2C2A; color: #FAF7F2; border: none;
-  }
-  .settings-clear {
-    background: transparent; border: 0.5px solid #F0997B;
-    color: #A32D2D; margin-right: auto;
+
   }
 
-  /* === チャット拡張(スピナー、APIキー未設定の案内)=== */
-  .chat-spinner {
-    display: inline-block;
-    width: 14px; height: 14px;
-    border: 2px solid #D3D1C7;
-    border-top-color: #534AB7;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    vertical-align: middle;
-    margin-right: 8px;
+  .settings-trigger:hover { border-color: #BA7517; color: #2C2C2A; }
+
+  .settings-modal-bg {
+
+    display: none;
+
+    position: fixed; inset: 0;
+
+    background: rgba(44, 44, 42, 0.4);
+
+    z-index: 1000; align-items: center; justify-content: center;
+
   }
+
+  .settings-modal-bg.open { display: flex; }
+
+  .settings-modal {
+
+    background: #FAF7F2;
+
+    border: 0.5px solid #D3D1C7;
+
+    border-radius: 12px;
+
+    padding: 24px;
+
+    width: 480px; max-width: 90vw;
+
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+
+  }
+
+  .settings-modal h3 { font-size: 15px; font-weight: 500; margin-bottom: 16px; }
+
+  .settings-row { margin-bottom: 16px; }
+
+  .settings-label { display: block; font-size: 12px; color: #5F5E5A; margin-bottom: 6px; }
+
+  .settings-input {
+
+    width: 100%; padding: 10px 12px;
+
+    border: 0.5px solid #B4B2A9; border-radius: 6px;
+
+    font-size: 12px;
+
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+    background: #FFFEFA; color: #2C2C2A;
+
+    outline: none; box-sizing: border-box;
+
+  }
+
+  .settings-input:focus { border-color: #534AB7; }
+
+  .settings-help { font-size: 11px; color: #888780; margin-top: 6px; line-height: 1.6; }
+
+  .settings-help a { color: #534AB7; }
+
+  .settings-warning {
+
+    margin-top: 10px; padding: 8px 10px;
+
+    background: #FCEBEB; border: 0.5px solid #F0997B;
+
+    border-radius: 6px; font-size: 10px; color: #4A1B0C; line-height: 1.6;
+
+  }
+
+  .settings-actions {
+
+    display: flex; justify-content: flex-end; gap: 8px;
+
+    margin-top: 20px; padding-top: 16px;
+
+    border-top: 0.5px solid #D3D1C7;
+
+  }
+
+  .settings-actions button {
+
+    padding: 8px 16px; border-radius: 6px;
+
+    font-size: 12px; font-weight: 500;
+
+    cursor: pointer; font-family: inherit; transition: all 0.15s;
+
+  }
+
+  .settings-cancel { background: transparent; border: 0.5px solid #B4B2A9; color: #5F5E5A; }
+
+  .settings-save { background: #2C2C2A; color: #FAF7F2; border: none; }
+
+  .settings-clear { background: transparent; border: 0.5px solid #F0997B; color: #A32D2D; margin-right: auto; }
+
+  .chat-spinner {
+
+    display: inline-block; width: 14px; height: 14px;
+
+    border: 2px solid #D3D1C7; border-top-color: #534AB7;
+
+    border-radius: 50%; animation: spin 0.8s linear infinite;
+
+    vertical-align: middle; margin-right: 8px;
+
+  }
+
   @keyframes spin { to { transform: rotate(360deg); } }
 
   .chat-api-warning {
-    margin: 16px 24px;
-    padding: 14px 16px;
+
+    margin: 16px 24px; padding: 14px 16px;
+
     background: linear-gradient(135deg, #FFFEFA 0%, #FAEEDA 100%);
+
     border: 0.5px solid #EF9F27; border-radius: 8px;
+
     font-size: 12px; line-height: 1.7;
+
   }
+
   .chat-api-warning strong { color: #854F0B; }
+
   .chat-api-warning button {
-    margin-top: 8px;
-    padding: 6px 14px;
+
+    margin-top: 8px; padding: 6px 14px;
+
     background: #2C2C2A; color: #FAF7F2;
+
     border: none; border-radius: 6px;
+
     font-size: 11px; font-weight: 500;
+
     cursor: pointer; font-family: inherit;
+
   }
 
-  /* === スケジュール(動的)=== */
   .schedule-loading, .schedule-empty {
-    padding: 12px;
-    font-size: 11px; color: #888780;
+
+    padding: 12px; font-size: 11px; color: #888780;
+
     text-align: center; font-style: italic;
+
   }
 
-  /* === モチベーションバナー(画面上部) === */
   .motivation-banner {
-    margin: 0;
-    padding: 14px 24px;
+
+    margin: 0; padding: 14px 24px;
+
     background: linear-gradient(90deg, #FFFEFA 0%, #FAEEDA 50%, #FFFEFA 100%);
+
     border-bottom: 0.5px solid #EF9F27;
+
     display: flex; align-items: center; gap: 12px;
+
     font-size: 13px; line-height: 1.5;
-  }
-  .motivation-eyebrow {
-    font-size: 10px; color: #854F0B;
-    letter-spacing: 0.05em;
-    flex-shrink: 0;
-  }
-  .motivation-text {
-    color: #2C2C2A;
-    font-weight: 500;
+
   }
 
-  /* === チェック時のアニメーション(✨ 飛び出し) === */
-  .focus-check.checked {
-    animation: checkPop 0.3s ease;
-  }
+  .motivation-eyebrow { font-size: 10px; color: #854F0B; letter-spacing: 0.05em; flex-shrink: 0; }
+
+  .motivation-text { color: #2C2C2A; font-weight: 500; }
+
+  .focus-check.checked { animation: checkPop 0.3s ease; }
+
   @keyframes checkPop {
+
     0% { transform: scale(1); }
+
     50% { transform: scale(1.4); }
+
     100% { transform: scale(1); }
+
   }
+
   .sparkle-burst {
-    position: absolute;
-    pointer-events: none;
-    font-size: 16px;
+
+    position: absolute; pointer-events: none; font-size: 16px;
+
     animation: sparkle 0.8s ease-out forwards;
+
   }
+
   @keyframes sparkle {
+
     0% { opacity: 0; transform: translate(0, 0) scale(0.5); }
+
     30% { opacity: 1; }
+
     100% { opacity: 0; transform: translate(var(--dx, 20px), var(--dy, -20px)) scale(1.2); }
+
   }
 
-  /* === フォーカス進捗バー === */
   .focus-progress-wrap {
-    margin-top: 10px;
-    display: flex; align-items: center; gap: 8px;
+
+    margin-top: 10px; display: flex; align-items: center; gap: 8px;
+
     font-size: 10px; color: #888780;
+
   }
-  .focus-progress-bar {
-    flex: 1; height: 5px;
-    background: #F1EFE8; border-radius: 3px; overflow: hidden;
-  }
+
+  .focus-progress-bar { flex: 1; height: 5px; background: #F1EFE8; border-radius: 3px; overflow: hidden; }
+
   .focus-progress-fill {
+
     height: 100%; background: linear-gradient(90deg, #FAC775 0%, #639922 100%);
-    transition: width 0.5s ease;
-    border-radius: 3px;
+
+    transition: width 0.5s ease; border-radius: 3px;
+
   }
+
   .focus-celebration {
-    margin-top: 10px;
-    padding: 10px 12px;
+
+    margin-top: 10px; padding: 10px 12px;
+
     background: linear-gradient(135deg, #EAF3DE 0%, #FFFEFA 100%);
-    border: 0.5px solid #639922;
-    border-radius: 8px;
-    font-size: 11px; color: #173404;
-    text-align: center;
-    line-height: 1.6;
-    display: none;
+
+    border: 0.5px solid #639922; border-radius: 8px;
+
+    font-size: 11px; color: #173404; text-align: center; line-height: 1.6; display: none;
+
   }
+
   .focus-celebration.show { display: block; animation: celebrate 0.5s ease; }
+
   @keyframes celebrate {
+
     0% { transform: scale(0.95); opacity: 0; }
+
     100% { transform: scale(1); opacity: 1; }
+
   }
 
-  /* === 個人別KPI(コンパクト6項目)=== */
-  .kpi-mini-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    margin-top: 10px;
-  }
-  .kpi-mini {
-    background: #FFFEFA;
-    border: 0.5px solid #D3D1C7;
-    border-radius: 6px;
-    padding: 8px 10px;
-  }
-  .kpi-mini-label {
-    font-size: 10px; color: #888780;
-    margin-bottom: 2px;
-  }
-  .kpi-mini-value {
-    font-size: 14px; font-weight: 500;
-    color: #2C2C2A;
-    font-variant-numeric: tabular-nums;
-  }
-  .kpi-mini-value .unit {
-    font-size: 10px; color: #888780;
-    font-weight: 400; margin-left: 2px;
-  }
+  .kpi-mini-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
 
-  /* === ロード中・エラー === */
+  .kpi-mini { background: #FFFEFA; border: 0.5px solid #D3D1C7; border-radius: 6px; padding: 8px 10px; }
+
+  .kpi-mini-label { font-size: 10px; color: #888780; margin-bottom: 2px; }
+
+  .kpi-mini-value { font-size: 14px; font-weight: 500; color: #2C2C2A; font-variant-numeric: tabular-nums; }
+
+  .kpi-mini-value .unit { font-size: 10px; color: #888780; font-weight: 400; margin-left: 2px; }
+
   .kpi-loading, .kpi-error {
-    padding: 16px 12px;
-    text-align: center;
-    font-size: 11px;
-    color: #888780;
-    background: #FFFEFA;
-    border: 0.5px dashed #B4B2A9;
-    border-radius: 8px;
+
+    padding: 16px 12px; text-align: center; font-size: 11px; color: #888780;
+
+    background: #FFFEFA; border: 0.5px dashed #B4B2A9; border-radius: 8px;
+
   }
+
   .kpi-error { color: #A32D2D; border-color: #F0997B; }
 
-  /* === URL未指定時の案内 === */
   .user-required {
+
     padding: 18px 16px;
+
     background: linear-gradient(135deg, #FFFEFA 0%, #FAEEDA 100%);
-    border: 0.5px solid #EF9F27;
-    border-radius: 8px;
-    text-align: center;
+
+    border: 0.5px solid #EF9F27; border-radius: 8px; text-align: center;
+
   }
-  .user-required-title {
-    font-size: 13px; font-weight: 500;
-    color: #2C2C2A; margin-bottom: 8px;
-  }
-  .user-required-desc {
-    font-size: 11px; line-height: 1.7;
-    color: #5F5E5A; margin-bottom: 12px;
-  }
+
+  .user-required-title { font-size: 13px; font-weight: 500; color: #2C2C2A; margin-bottom: 8px; }
+
+  .user-required-desc { font-size: 11px; line-height: 1.7; color: #5F5E5A; margin-bottom: 12px; }
+
   .user-required-example {
-    font-size: 10px; color: #5F5E5A;
-    background: #FFFEFA;
-    padding: 6px 10px; border-radius: 4px;
-    border: 0.5px solid #D3D1C7;
-    word-break: break-all;
-    line-height: 1.6;
-    text-align: left;
+
+    font-size: 10px; color: #5F5E5A; background: #FFFEFA;
+
+    padding: 6px 10px; border-radius: 4px; border: 0.5px solid #D3D1C7;
+
+    word-break: break-all; line-height: 1.6; text-align: left;
+
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+
   }
+
   .user-required-example strong { color: #BA7517; }
 
-  /* === ユーザー名表示(KPIヘッダーに) === */
-  .kpi-section-header {
-    display: flex; justify-content: space-between; align-items: baseline;
-    margin-bottom: 4px;
-  }
-  .kpi-user-tag {
-    font-size: 10px;
-    background: #FAEEDA;
-    color: #854F0B;
-    padding: 1px 8px;
-    border-radius: 10px;
-  }
+  .kpi-section-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
 
-  /* === 右パネル拡張(スクロール対応 + 新セクション) === */
-  .sidebar-right {
-    overflow-y: auto;
-    min-height: 0;
-  }
+  .kpi-user-tag { font-size: 10px; background: #FAEEDA; color: #854F0B; padding: 1px 8px; border-radius: 10px; }
+
+  .sidebar-right { overflow-y: auto; min-height: 0; }
+
   .sidebar-right::-webkit-scrollbar { width: 6px; }
+
   .sidebar-right::-webkit-scrollbar-track { background: transparent; }
+
   .sidebar-right::-webkit-scrollbar-thumb { background: #D3D1C7; border-radius: 3px; }
+
   .sidebar-right::-webkit-scrollbar-thumb:hover { background: #B4B2A9; }
 
-  /* === KPIダッシュボード === */
-  .kpi-section { /* セクション枠 */ }
-  .kpi-row {
-    margin-bottom: 12px;
-  }
+  .kpi-section { }
+
+  .kpi-row { margin-bottom: 12px; }
+
   .kpi-row:last-child { margin-bottom: 0; }
-  .kpi-label-row {
-    display: flex; justify-content: space-between; align-items: baseline;
-    margin-bottom: 4px;
-  }
-  .kpi-label {
-    font-size: 11px; color: #5F5E5A;
-  }
-  .kpi-value {
-    font-size: 11px; font-variant-numeric: tabular-nums;
-  }
-  .kpi-value strong {
-    font-weight: 500; color: #2C2C2A;
-  }
+
+  .kpi-label-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+
+  .kpi-label { font-size: 11px; color: #5F5E5A; }
+
+  .kpi-value { font-size: 11px; font-variant-numeric: tabular-nums; }
+
+  .kpi-value strong { font-weight: 500; color: #2C2C2A; }
+
   .kpi-value .target { color: #888780; }
-  .kpi-bar-wrap {
-    height: 5px; background: #F1EFE8;
-    border-radius: 3px; overflow: hidden;
-  }
-  .kpi-bar {
-    height: 100%; border-radius: 3px;
-    transition: width 0.4s ease;
-  }
+
+  .kpi-bar-wrap { height: 5px; background: #F1EFE8; border-radius: 3px; overflow: hidden; }
+
+  .kpi-bar { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+
   .kpi-bar.amber { background: #BA7517; }
+
   .kpi-bar.coral { background: #F0997B; }
+
   .kpi-bar.warm { background: linear-gradient(90deg, #FAC775 0%, #F0997B 100%); }
-  .kpi-percent {
-    font-size: 10px; color: #888780;
-    margin-left: 6px;
-  }
+
+  .kpi-percent { font-size: 10px; color: #888780; margin-left: 6px; }
+
   .kpi-trend {
-    margin-top: 12px;
-    padding: 8px 10px;
-    background: #EAF3DE;
-    border-radius: 6px;
-    display: flex; align-items: center; gap: 6px;
-    font-size: 11px;
-  }
-  .kpi-trend-icon { color: #3B6D11; font-weight: 500; }
-  .kpi-trend-text { color: #173404; }
-
-  /* === AIコーチ === */
-  .coach-box {
-    padding: 12px 14px;
-    background: linear-gradient(135deg, #FFFEFA 0%, #FAEEDA 100%);
-    border: 0.5px solid #EF9F27;
-    border-radius: 8px;
-    position: relative;
-  }
-  .coach-eyebrow {
-    font-size: 10px; color: #854F0B;
-    letter-spacing: 0.05em;
-    margin-bottom: 6px;
-    display: flex; align-items: center; gap: 4px;
-  }
-  .coach-text {
-    font-size: 11px; line-height: 1.7;
-    color: #2C2C2A;
-  }
-
-  /* === 今週のフォーカス === */
-  .focus-list { display: flex; flex-direction: column; gap: 8px; }
-  .focus-item {
-    display: flex; gap: 8px; align-items: flex-start;
-    font-size: 11px; line-height: 1.5;
-  }
-  .focus-check {
-    width: 14px; height: 14px;
-    border: 1px solid #B4B2A9;
-    border-radius: 3px; flex-shrink: 0;
-    margin-top: 1px;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .focus-check:hover { border-color: #BA7517; }
-  .focus-check.checked {
-    background: #BA7517;
-    border-color: #BA7517;
-    position: relative;
-  }
-  .focus-check.checked::after {
-    content: '✓';
-    position: absolute;
-    color: white;
-    font-size: 10px;
-    top: -2px; left: 2px;
-    font-weight: 700;
-  }
-  .focus-text { flex: 1; }
-  .focus-item.done .focus-text {
-    text-decoration: line-through;
-    color: #888780;
-  }
-  .focus-meta {
-    font-size: 10px; color: #888780;
-    margin-left: 4px;
-  }
-
-  /* === カレンダー埋め込み === */
-  .calendar-area {
-    height: 100%;
-    padding: 16px 20px;
-    display: flex; flex-direction: column;
-  }
-  .calendar-frame-wrap {
-    flex: 1; min-height: 0;
-    border: 0.5px solid #D3D1C7;
-    border-radius: 8px; overflow: hidden;
-    background: #FFFEFA;
-  }
-  .calendar-frame {
-    width: 100%; height: 100%;
-    border: none; display: block;
-  }
-  .calendar-placeholder {
-    height: 100%;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    padding: 32px 24px;
-    text-align: center;
-    background: #FFFEFA;
-  }
-  .calendar-placeholder-title {
-    font-size: 16px; font-weight: 500;
-    margin-bottom: 8px; color: #2C2C2A;
-  }
-  .calendar-placeholder-desc {
-    font-size: 12px; color: #5F5E5A;
-    line-height: 1.7; max-width: 460px;
-    margin-bottom: 18px;
-  }
-  .calendar-steps {
-    text-align: left; max-width: 480px;
-    background: #FAF7F2;
-    border: 0.5px dashed #B4B2A9;
-    border-radius: 8px; padding: 14px 18px;
-    font-size: 12px; line-height: 1.8; color: #2C2C2A;
-  }
-  .calendar-steps strong { color: #2C2C2A; }
-  .calendar-steps code {
-    background: #F1EFE8; padding: 1px 5px;
-    border-radius: 3px; font-size: 11px;
-  }
-
-  /* === Launch画面(Slack / Ovice) === */
-  .launch-area {
-    height: 100%;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    padding: 40px 24px;
-    text-align: center;
-  }
-  .launch-icon-wrap {
-    width: 72px; height: 72px; border-radius: 16px;
-    display: flex; align-items: center; justify-content: center;
-    margin-bottom: 18px;
-  }
-  .launch-icon-wrap.slack { background: #4A154B; }
-  .launch-icon-wrap.ovice { background: #1B7CC8; }
-  .launch-title {
-    font-size: 20px; font-weight: 500;
-    margin-bottom: 6px; color: #2C2C2A;
-  }
-  .launch-desc {
-    font-size: 13px; color: #5F5E5A;
-    margin-bottom: 24px; line-height: 1.7;
-    max-width: 400px;
-  }
-  .launch-button {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 12px 24px; border-radius: 8px;
-    background: #2C2C2A; color: #FAF7F2;
-    text-decoration: none; font-size: 13px; font-weight: 500;
-    border: none; cursor: pointer; font-family: inherit;
-    transition: opacity 0.15s;
-  }
-  .launch-button:hover { opacity: 0.85; }
-  .launch-note {
-    margin-top: 18px;
-    font-size: 11px; color: #888780; font-style: italic;
-  }
-  .launch-meta {
-    margin-top: 22px;
-    padding: 12px 16px;
-    background: #FFFEFA;
-    border: 0.5px dashed #B4B2A9;
-    border-radius: 8px;
-    font-size: 11px; color: #5F5E5A;
-    line-height: 1.7;
-    max-width: 420px; text-align: left;
-  }
-  .launch-meta strong { color: #2C2C2A; }
-
-  .footer { padding: 10px 20px; background: #FFFEFA; border-top: 0.5px dashed #B4B2A9; display: flex; justify-content: space-between; align-items: center; }
-  .footer-text { font-size: 11px; color: #888780; font-style: italic; }
-  .footer-note { font-size: 11px; color: #5F5E5A; }
-
-  .caption { display: none; }
-  .caption strong { color: #2C2C2A; }
-</style>
-</head>
-<body>
-
-<div class="frame">
-
-  <div class="topbar">
-    <div class="logo-group">
-      <img src="data:image/png;base64,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" alt="CONNECT" class="logo-img">
-      <div class="brand-line">
-        <span class="brand-name">CONNECT Studio</span>
-        <span class="brand-tagline">— 自分たちでつくる、会社の入口。</span>
-      </div>
-    </div>
-    <div class="top-right">
-      <span class="date">2026.04.27 月</span>
-      <button class="settings-trigger" onclick="openSettings()">⚙ 設定</button>
-      <div class="avatar" id="user-avatar">YK</div>
-    </div>
-  </div>
-
-  <!-- モチベーションバナー -->
-  <div class="motivation-banner" id="motivation-banner">
-    <span class="motivation-eyebrow">✨ TODAY'S WORD</span>
-    <span class="motivation-text" id="motivation-text">—</span>
-  </div>
-
-  <div class="body-grid">
-
-    <!-- 左サイド -->
-    <div class="sidebar-left">
-      <p class="section-label">私たちが作ったもの</p>
-
-      <div class="nav-item" data-pane="mail" onclick="switchPane('mail')">
-        <div class="nav-icon" style="background: #FAC775;">
-          <svg width="12" height="12" viewBox="0 0 18 18" fill="none">
-            <rect x="2" y="4" width="14" height="10" rx="1.5" stroke="#412402" stroke-width="1.8"/>
-            <path d="M2 5l7 5 7-5" stroke="#412402" stroke-width="1.8"/>
-          </svg>
-        </div>
-        <span class="nav-label">Mail</span>
-        <span class="badge-num badge-hot" id="mail-badge">23</span>
-        <div class="working-dot"></div>
-      </div>
-
-      <div class="nav-item" data-pane="resume" onclick="switchPane('resume')">
-        <div class="nav-icon" style="background: #F0997B;">
-          <svg width="12" height="12" viewBox="0 0 18 18" fill="none">
-            <path d="M5 2h6l3 3v11H5V2z" stroke="#4A1B0C" stroke-width="1.8" stroke-linejoin="round"/>
-            <path d="M11 2v3h3" stroke="#4A1B0C" stroke-width="1.8" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <span class="nav-label">履歴書変換</span>
-        <span class="badge-num badge-mute" id="resume-badge">0</span>
-        <div class="working-dot"></div>
-      </div>
-
-      <div class="nav-item">
-        <div class="nav-icon" style="background: #AFA9EC;">
-          <svg width="12" height="12" viewBox="0 0 18 18" fill="none">
-            <circle cx="6" cy="6" r="2.5" stroke="#26215C" stroke-width="1.8"/>
-            <circle cx="13" cy="7" r="2" stroke="#26215C" stroke-width="1.8"/>
-            <path d="M2 14c0-2 2-3.5 4-3.5s4 1.5 4 3.5" stroke="#26215C" stroke-width="1.8" stroke-linecap="round"/>
-          </svg>
-        </div>
-        <span class="nav-label">人材DB</span>
-      </div>
-
-      <p class="section-label spaced">借りているもの</p>
-
-      <div class="nav-item active" data-pane="claude" onclick="switchPane('claude')">
-        <div class="nav-icon" style="background: #EEEDFE;">
-          <svg width="12" height="12" viewBox="0 0 18 18" fill="none">
-            <path d="M9 2L4 14h2.5l1-2.5h3l1 2.5H14L9 2z" stroke="#3C3489" stroke-width="1.6" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <span class="nav-label active">Claude</span>
-        <span class="badge-num badge-new">AI</span>
-      </div>
-
-      <div class="nav-item" data-pane="slack" onclick="switchPane('slack')">
-        <div class="nav-icon" style="background: #4A154B;">
-          <svg width="12" height="12" viewBox="0 0 18 18" fill="none">
-            <rect x="2" y="7" width="4" height="2" rx="1" fill="#ECB22E"/>
-            <rect x="9" y="2" width="2" height="4" rx="1" fill="#36C5F0"/>
-            <rect x="12" y="9" width="4" height="2" rx="1" fill="#2EB67D"/>
-            <rect x="7" y="12" width="2" height="4" rx="1" fill="#E01E5A"/>
-          </svg>
-        </div>
-        <span class="nav-label">Slack</span>
-      </div>
-
-      <div class="nav-item" data-pane="ovice" onclick="switchPane('ovice')">
-        <div class="nav-icon" style="background: #1B7CC8;">
-          <svg width="12" height="12" viewBox="0 0 18 18" fill="none">
-            <circle cx="9" cy="9" r="6" stroke="#FFFFFF" stroke-width="1.6"/>
-            <circle cx="9" cy="9" r="2" fill="#FFFFFF"/>
-          </svg>
-        </div>
-        <span class="nav-label">Ovice</span>
-      </div>
-
-      <div class="nav-item" data-pane="gmail" onclick="switchPane('gmail')">
-        <div class="nav-icon" style="background: #FCEBEB;">
-          <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
-            <rect x="1.5" y="3" width="11" height="8" rx="1" stroke="#A32D2D" stroke-width="1.3"/>
-            <path d="M1.5 4l5.5 4 5.5-4" stroke="#A32D2D" stroke-width="1.3"/>
-          </svg>
-        </div>
-        <span class="nav-label">Gmail</span>
-      </div>
-
-      <div class="nav-item" data-pane="gcal" onclick="switchPane('gcal')">
-        <div class="nav-icon" style="background: #FAEEDA;">
-          <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
-            <rect x="2" y="3" width="10" height="9" rx="1" stroke="#854F0B" stroke-width="1.3"/>
-            <path d="M2 5.5h10" stroke="#854F0B" stroke-width="1.3"/>
-            <path d="M5 2v2M9 2v2" stroke="#854F0B" stroke-width="1.3" stroke-linecap="round"/>
-          </svg>
-        </div>
-        <span class="nav-label">カレンダー</span>
-      </div>
-
-      <div class="nav-item" data-pane="gdrive" onclick="switchPane('gdrive')">
-        <div class="nav-icon" style="background: #EAF3DE;">
-          <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
-            <path d="M5 1.5l-3 5.5 2.5 4h6l2.5-4-3-5.5H5z" stroke="#3B6D11" stroke-width="1.3" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <span class="nav-label">Drive</span>
-      </div>
-    </div>
-
-    <!-- メイン -->
-    <div class="main-area">
-
-      <div class="breadcrumb">
-        <div class="breadcrumb-text">
-          <h2 id="bc-title">Claude</h2>
-          <span class="breadcrumb-path" id="bc-path">/ AIアシスタント / 新しい会話</span>
-        </div>
-        <span class="building-badge badge-borrowed" id="bc-badge">borrowed</span>
-      </div>
-
-      <!-- Claude -->
-      <div class="pane active" id="pane-claude">
-        <div class="chat-area">
-          <div class="chat-messages" id="chat-messages">
-            <div class="chat-msg assistant">
-              <div class="chat-msg-meta">Claude</div>
-              <div class="chat-msg-bubble">
-                おはようございます、山口さん。<br>
-                今日もCONNECT Studioへようこそ。何かお手伝いできることはありますか?
-              </div>
-            </div>
-          </div>
-
-          <div class="chat-suggestions">
-            <button class="chat-suggestion" onclick="suggestPrompt('田中様への返信文を考えて')">田中様への返信文を考えて</button>
-            <button class="chat-suggestion" onclick="suggestPrompt('今日の予定を要約して')">今日の予定を要約して</button>
-          </div>
-
-          <div class="chat-input-area">
-            <textarea class="chat-input" id="chat-input" placeholder="メッセージを入力..." rows="1"></textarea>
-            <button class="chat-send" onclick="sendChat()">送信</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Mail -->
-      <div class="pane" id="pane-mail">
-        <div class="mail-grid">
-          <div class="mail-list" id="mail-list">
-            <!-- JSで生成 -->
-          </div>
-          <div class="mail-body" id="mail-body">
-            <!-- JSで生成 -->
-          </div>
-        </div>
-      </div>
-
-      <!-- 履歴書変換 -->
-      <div class="pane" id="pane-resume">
-        <div class="resume-area">
-          <p class="resume-section-title">履歴書をアップロード</p>
-          <div class="upload-zone">
-            <div class="upload-icon">
-              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                <path d="M16 22V8M16 8L10 14M16 8l6 6" stroke="#888780" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M6 22v3a2 2 0 002 2h16a2 2 0 002-2v-3" stroke="#888780" stroke-width="1.8" stroke-linecap="round"/>
-              </svg>
-            </div>
-            <p class="upload-text">ここに履歴書をドラッグ&ドロップ</p>
-            <p class="upload-hint">PDF, Word, 画像ファイルに対応</p>
-            <button class="demo-btn" onclick="startDemoConversion()">▶ デモ:3件のサンプル履歴書を変換する</button>
-          </div>
-
-          <p class="resume-section-title">処理中・完了したファイル <span style="color: #888780; font-weight: 400;" id="file-count">(0件)</span></p>
-          <div class="file-list" id="file-list">
-            <p style="font-size: 12px; color: #888780; padding: 16px 0; text-align: center;">まだファイルはありません。上の「デモ」ボタンを押してみてください。</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Slack -->
-      <div class="pane" id="pane-slack">
-        <div class="launch-area">
-          <div class="launch-icon-wrap slack">
-            <svg width="32" height="32" viewBox="0 0 18 18" fill="none">
-              <rect x="2" y="7" width="4" height="2" rx="1" fill="#ECB22E"/>
-              <rect x="9" y="2" width="2" height="4" rx="1" fill="#36C5F0"/>
-              <rect x="12" y="9" width="4" height="2" rx="1" fill="#2EB67D"/>
-              <rect x="7" y="12" width="2" height="4" rx="1" fill="#E01E5A"/>
-            </svg>
-          </div>
-          <p class="launch-title">Slack</p>
-          <p class="launch-desc">社内チャット・連絡用ツール。<br>新しいタブで開きます。</p>
-          <a href="https://app.slack.com/client/T01363L10KG/C0144FZUBDK" target="_blank" rel="noopener" class="launch-button">
-            Slack を開く ↗
-          </a>
-          <p class="launch-note">※ Slackはセキュリティ上、ポータル内に直接埋め込めない仕様です</p>
-          <div class="launch-meta">
-            <strong>将来的に置き換えるなら:</strong><br>
-            CONNECT Studio版の社内コミュニケーションツール(仮称: CONNECT Talk)を内製化することも検討余地あり。
-          </div>
-        </div>
-      </div>
-
-      <!-- Ovice -->
-      <div class="pane" id="pane-ovice">
-        <div class="launch-area">
-          <div class="launch-icon-wrap ovice">
-            <svg width="32" height="32" viewBox="0 0 18 18" fill="none">
-              <circle cx="9" cy="9" r="6" stroke="#FFFFFF" stroke-width="1.6"/>
-              <circle cx="9" cy="9" r="2" fill="#FFFFFF"/>
-            </svg>
-          </div>
-          <p class="launch-title">Ovice</p>
-          <p class="launch-desc">バーチャルオフィス。<br>新しいタブで開いて入室します。</p>
-          <a href="https://app.ovice.com/ws/a2zignx1qu/@pos-n611phw" target="_blank" rel="noopener" class="launch-button">
-            Ovice に入室 ↗
-          </a>
-          <p class="launch-note">※ マイク・カメラ権限が求められる場合は許可してください</p>
-          <div class="launch-meta">
-            <strong>将来的に置き換えるなら:</strong><br>
-            社内専用のバーチャルオフィス機能を CONNECT Studio に内製する選択肢も。まずは Ovice で運用継続。
-          </div>
-        </div>
-      </div>
-
-      <!-- Gmail -->
-      <div class="pane" id="pane-gmail">
-        <div class="launch-area">
-          <div class="launch-icon-wrap" style="background: #FCEBEB;">
-            <svg width="36" height="36" viewBox="0 0 18 18" fill="none">
-              <rect x="2" y="4" width="14" height="10" rx="1.5" stroke="#A32D2D" stroke-width="1.5"/>
-              <path d="M2 5l7 5 7-5" stroke="#A32D2D" stroke-width="1.5"/>
-            </svg>
-          </div>
-          <p class="launch-title">Gmail</p>
-          <p class="launch-desc">個人メール。<br>新しいタブで開きます。</p>
-          <a href="https://mail.google.com" target="_blank" rel="noopener" class="launch-button">
-            Gmail を開く ↗
-          </a>
-          <p class="launch-note">※ Gmailはセキュリティ上、ポータル内に直接埋め込めない仕様です</p>
-          <div class="launch-meta">
-            <strong>将来的に置き換えるなら:</strong><br>
-            社内メールは CONNECT Mail へ移行予定。個人メール用途として Gmail は継続使用の見込み。
-          </div>
-        </div>
-      </div>
-
-      <!-- Google カレンダー(埋め込み or プレースホルダー) -->
-      <div class="pane" id="pane-gcal">
-        <div class="calendar-area">
-          <div class="calendar-frame-wrap">
-            <iframe class="calendar-frame"
-              src="https://calendar.google.com/calendar/embed?src=t54og1i2tbdrhg0pj0a0ngv4fg%40group.calendar.google.com&src=gckj4029%40gmail.com&src=pvob0antca06ibjnnhq1jv83qg%40group.calendar.google.com&src=jv1cl2mtvduclk9uti7hoj4dc8%40group.calendar.google.com&src=vnh03g7usf9ems18h7qampaeis%40group.calendar.google.com&src=72f9j639o852fkth6tqqhfeg20%40group.calendar.google.com&ctz=Asia%2FTokyo"
-              frameborder="0" scrolling="no"></iframe>
-          </div>
-        </div>
-      </div>
-
-      <!-- Google Drive -->
-      <div class="pane" id="pane-gdrive">
-        <div class="launch-area">
-          <div class="launch-icon-wrap" style="background: #EAF3DE;">
-            <svg width="36" height="36" viewBox="0 0 18 18" fill="none">
-              <path d="M6 2l-4 7 3 5h8l3-5-4-7H6z" stroke="#3B6D11" stroke-width="1.5" stroke-linejoin="round"/>
-              <path d="M6 2l3 7M12 2l-3 7M5 14l4-5M13 14l-4-5" stroke="#3B6D11" stroke-width="1.5"/>
-            </svg>
-          </div>
-          <p class="launch-title">Google Drive</p>
-          <p class="launch-desc">ファイル共有・保管。<br>新しいタブで開きます。</p>
-          <a href="https://drive.google.com" target="_blank" rel="noopener" class="launch-button">
-            Drive を開く ↗
-          </a>
-          <p class="launch-note">※ Driveのファイル一覧画面は埋め込み不可ですが、個別ファイルなら埋め込み可能です</p>
-          <div class="launch-meta">
-            <strong>将来的な拡張案:</strong><br>
-            よく見るスプレッドシートや経営ダッシュボードを、ポータル内に常時埋め込み表示することも可能。<br>
-            人材データベースが完成すれば、求職者ファイルは自社DB側に統合予定。
-          </div>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- 右サイド(中身は WEEKLY_CONFIG から自動描画されます) -->
-    <div class="sidebar-right" id="sidebar-right">
-      <!-- ① 営業進捗 -->
-      <div class="kpi-section" id="kpi-container"></div>
-
-      <!-- ② AIコーチ -->
-      <div id="coach-container"></div>
-
-      <!-- ③ 今週のフォーカス -->
-      <div id="focus-container"></div>
-
-      <!-- ④ TODAY'S NOTE -->
-      <div id="note-container"></div>
-
-      <!-- ⑤ 本日の予定(個人カレンダーから取得) -->
-      <div id="schedule-container"></div>
-
-      <!-- ⑥ 工房ログ -->
-      <div id="log-container"></div>
-    </div>
-
-  </div>
-
-  <div class="footer">
-    <span class="footer-text">Built by us, for us. — CONNECT Studio</span>
-    <span class="footer-note">v13 / Todoist連携・モチベーション・チームログ強化</span>
-  </div>
-
-</div>
-
-<p class="caption">
-  <strong>体験のしかた:</strong>
-  ① Claudeで何かチャットする → ② Mailをクリックしてメールに対応する → ③ 履歴書変換でデモ変換を開始する → ④ 別のアプリに移動 → ⑤ 戻ってくる<br>
-  すべて状態が保持されています。履歴書変換は<strong>裏で進行中</strong>になり、左サイドのアイコンに動作中ドット <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #BA7517; vertical-align: middle;"></span> が点滅します。
-</p>
-
-<script>
-  // === 状態管理 ===
-  const state = {
-    mails: [
-      { id: 'm1', from: '田中様 / ABC社', email: 'tanaka@abc.co.jp', avatar: '田', time: '9:42', datetime: '2026.04.27 9:42', preview: 'お見積もりの件、ご確認...', subject: 'お見積もりの件、ご確認お願いいたします', body: '<p>山口様</p><p>いつもお世話になっております。<br>株式会社ABCの田中です。</p><p>先日ご相談しました件のお見積もりをお送りいたします。ご確認のほどよろしくお願いいたします。</p><p>不明点ございましたら、お気軽にご連絡くださいませ。</p><p class="signature">— 田中</p>', tag: 'todo', read: false, done: false },
-      { id: 'm2', from: '採用応募 / 山田氏', email: 'yamada@example.com', avatar: '山', time: '9:15', datetime: '2026.04.27 9:15', preview: 'エンジニアポジションへ...', subject: 'エンジニアポジションへの応募', body: '<p>採用ご担当者様</p><p>はじめまして、山田と申します。<br>御社のエンジニアポジションに応募させていただきたく、ご連絡しました。</p><p>履歴書を添付いたしますので、ご確認のほどよろしくお願いいたします。</p>', tag: 'recruit', read: false, done: false },
-      { id: 'm3', from: '佐藤様 / XYZ商事', email: 'sato@xyz.co.jp', avatar: '佐', time: '8:51', datetime: '2026.04.27 8:51', preview: '来週の打ち合わせ日程...', subject: '来週の打ち合わせ日程について', body: '<p>山口様</p><p>来週の打ち合わせ日程ですが、5月7日(木) 14:00からでいかがでしょうか。</p><p>ご都合いかがでしょうか。よろしくお願いいたします。</p>', tag: null, read: false, done: false },
-      { id: 'm4', from: '鈴木様', email: 'suzuki@example.com', avatar: '鈴', time: '昨日', datetime: '2026.04.26', preview: '資料お送りいたしました', subject: '資料お送りいたしました', body: '<p>資料お送りいたしました。ご確認お願いいたします。</p>', tag: null, read: true, done: false },
-      { id: 'm5', from: '高橋様 / DEF', email: 'takahashi@def.com', avatar: '高', time: '昨日', datetime: '2026.04.26', preview: '先日はありがとうござ...', subject: '先日はありがとうございました', body: '<p>先日はお時間をいただきありがとうございました。</p>', tag: null, read: true, done: false }
-    ],
-    selectedMailId: 'm1',
-    chatMessages: [
-      { role: 'assistant', text: 'おはようございます、山口さん。<br>今日もCONNECT Studioへようこそ。何かお手伝いできることはありますか?' }
-    ],
-    files: [],
-    fileCounter: 0
-  };
-
-  let currentPane = 'claude';
-
-  // === ペイン切り替え ===
-  function switchPane(name) {
-    currentPane = name;
-
-    document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
-    document.getElementById('pane-' + name).classList.add('active');
-
-    document.querySelectorAll('.nav-item').forEach(n => {
-      n.classList.remove('active');
-      const lbl = n.querySelector('.nav-label');
-      if (lbl) lbl.classList.remove('active');
-    });
-    const activeItem = document.querySelector('[data-pane="' + name + '"]');
-    if (activeItem) {
-      activeItem.classList.add('active');
-      activeItem.querySelector('.nav-label').classList.add('active');
-    }
-
-    const bcTitle = document.getElementById('bc-title');
-    const bcPath = document.getElementById('bc-path');
-    const bcBadge = document.getElementById('bc-badge');
-
-    if (name === 'mail') {
-      bcTitle.textContent = 'CONNECT Mail';
-      bcPath.textContent = '/ 受信箱 / 要対応';
-      bcBadge.textContent = 'building 35%';
-      bcBadge.className = 'building-badge badge-building';
-      renderMail();
-    } else if (name === 'claude') {
-      bcTitle.textContent = 'Claude';
-      bcPath.textContent = '/ AIアシスタント / 会話継続中';
-      bcBadge.textContent = 'borrowed';
-      bcBadge.className = 'building-badge badge-borrowed';
-    } else if (name === 'resume') {
-      bcTitle.textContent = '履歴書変換ツール';
-      bcPath.textContent = '/ アップロード';
-      bcBadge.textContent = 'beta';
-      bcBadge.className = 'building-badge badge-beta';
-      renderFiles();
-    } else if (name === 'slack') {
-      bcTitle.textContent = 'Slack';
-      bcPath.textContent = '/ 社内チャット';
-      bcBadge.textContent = 'borrowed';
-      bcBadge.className = 'building-badge badge-borrowed';
-    } else if (name === 'ovice') {
-      bcTitle.textContent = 'Ovice';
-      bcPath.textContent = '/ バーチャルオフィス';
-      bcBadge.textContent = 'borrowed';
-      bcBadge.className = 'building-badge badge-borrowed';
-    } else if (name === 'gmail') {
-      bcTitle.textContent = 'Gmail';
-      bcPath.textContent = '/ 個人メール';
-      bcBadge.textContent = 'borrowed';
-      bcBadge.className = 'building-badge badge-borrowed';
-    } else if (name === 'gcal') {
-      bcTitle.textContent = 'Google カレンダー';
-      bcPath.textContent = '/ スケジュール';
-      bcBadge.textContent = 'borrowed';
-      bcBadge.className = 'building-badge badge-borrowed';
-    } else if (name === 'gdrive') {
-      bcTitle.textContent = 'Google Drive';
-      bcPath.textContent = '/ ファイル共有';
-      bcBadge.textContent = 'borrowed';
-      bcBadge.className = 'building-badge badge-borrowed';
-    }
-  }
-
-  // === Mail レンダリング ===
-  function renderMail() {
-    const list = document.getElementById('mail-list');
-    list.innerHTML = state.mails.map(m => {
-      const tagHtml = m.done ? '<span class="mail-tag tag-done">対応済み</span>' :
-                      m.tag === 'todo' ? '<span class="mail-tag tag-todo">要対応</span>' :
-                      m.tag === 'recruit' ? '<span class="mail-tag tag-recruit">採用</span>' : '';
-      return `
-        <div class="mail-item ${m.id === state.selectedMailId ? 'active' : ''}" onclick="selectMail('${m.id}')">
-          <div class="mail-row">
-            <span class="mail-from ${m.read ? 'read' : ''}">${escapeHtml(m.from)}</span>
-            <span class="mail-time">${m.time}</span>
-          </div>
-          <div class="mail-preview ${m.read ? 'read' : ''}">${escapeHtml(m.preview)}</div>
-          ${tagHtml}
-        </div>
-      `;
-    }).join('');
-
-    const m = state.mails.find(x => x.id === state.selectedMailId);
-    if (!m) return;
-    const body = document.getElementById('mail-body');
-    body.innerHTML = `
-      <div class="mail-header">
-        <div class="mail-subject">${escapeHtml(m.subject)}</div>
-        <div class="mail-meta">
-          <div class="mail-avatar">${escapeHtml(m.avatar)}</div>
-          <span class="mail-sender">${escapeHtml(m.from.split(' / ')[0])} <span class="email">&lt;${escapeHtml(m.email)}&gt;</span></span>
-          <span class="mail-datetime">${m.datetime}</span>
-        </div>
-      </div>
-      <div class="mail-content">${m.body}</div>
-      <div class="mail-actions">
-        <button>返信</button>
-        <button>転送</button>
-        <button class="primary ${m.done ? 'done' : ''}" onclick="toggleDone('${m.id}')">
-          ${m.done ? '✓ 対応済み' : '対応済みにする'}
-        </button>
-      </div>
-    `;
-  }
-
-  function selectMail(id) {
-    state.selectedMailId = id;
-    const m = state.mails.find(x => x.id === id);
-    if (m) m.read = true;
-    updateMailBadge();
-    renderMail();
-  }
-
-  function toggleDone(id) {
-    const m = state.mails.find(x => x.id === id);
-    if (m) m.done = !m.done;
-    renderMail();
-  }
-
-  function updateMailBadge() {
-    const unread = state.mails.filter(m => !m.read).length;
-    const badge = document.getElementById('mail-badge');
-    badge.textContent = unread;
-    badge.style.display = unread > 0 ? '' : 'none';
-  }
-
-  // === Claude チャット ===
-  function suggestPrompt(text) {
-    document.getElementById('chat-input').value = text;
-    document.getElementById('chat-input').focus();
-  }
-
-  // ──────── Claude API設定 ────────
-  const CLAUDE_API_KEY_STORAGE = 'connect_studio_claude_api_key';
-  const CLAUDE_MODEL = 'claude-opus-4-5';
-
-  function getApiKey() {
-    try { return localStorage.getItem(CLAUDE_API_KEY_STORAGE) || ''; }
-    catch { return ''; }
-  }
-  function setApiKey(k) {
-    try { localStorage.setItem(CLAUDE_API_KEY_STORAGE, k); }
-    catch (e) { console.warn(e); }
-  }
-  function clearApiKey() {
-    try { localStorage.removeItem(CLAUDE_API_KEY_STORAGE); }
-    catch (e) { console.warn(e); }
-  }
-
-  function openSettings() {
-    document.getElementById('settings-modal-bg').classList.add('open');
-    const input = document.getElementById('settings-api-key');
-    if (input) input.value = getApiKey();
-  }
-  function closeSettings() {
-    document.getElementById('settings-modal-bg').classList.remove('open');
-  }
-  function saveSettings() {
-    const input = document.getElementById('settings-api-key');
-    const k = input.value.trim();
-    if (k) setApiKey(k);
-    closeSettings();
-    // チャット画面が APIキー警告を出していたらリフレッシュ
-    refreshChatPaneIfNeeded();
-  }
-  function clearSettings() {
-    if (!confirm('保存されているAPIキーを削除しますか?')) return;
-    clearApiKey();
-    document.getElementById('settings-api-key').value = '';
-    closeSettings();
-    refreshChatPaneIfNeeded();
-  }
-
-  function refreshChatPaneIfNeeded() {
-    // チャット画面が表示中ならメッセージを再描画
-    if (currentPane === 'claude') renderChat();
-  }
-
-  // ──────── システムプロンプト生成 ────────
-  function buildSystemPrompt() {
-    let userName = WEEKLY_CONFIG && WEEKLY_CONFIG.userName ? WEEKLY_CONFIG.userName : 'ユーザー';
-    let achievementRate = '不明';
-    if (CURRENT_USER && CURRENT_USER.rate != null) {
-      userName = CURRENT_USER.name || userName;
-      achievementRate = normalizeRateToPercent(CURRENT_USER.rate).toFixed(1);
-    }
-    return `あなたはCONNECT Studioの専属AIアシスタントです。ユーザーの営業活動をサポートしてください。現在のユーザー: ${userName}、今月の売上達成率: ${achievementRate}%`;
-  }
-
-  // ──────── Claude API呼び出し ────────
-  async function callClaudeAPI(userText) {
-    const apiKey = getApiKey();
-    if (!apiKey) throw new Error('APIキーが設定されていません');
-
-    // 過去のやり取りを Anthropic API 形式に変換
-    const history = state.chatMessages
-      .filter(m => m.role === 'user' || m.role === 'assistant')
-      .map(m => ({
-        role: m.role,
-        content: stripHtmlTags(m.text)
-      }));
-    // 末尾の今送るメッセージは history に既に入っているはずなので確認
-    // (sendChatでは push してから呼ぶので、最後が今のuser message)
-
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: CLAUDE_MODEL,
-        max_tokens: 1024,
-        system: buildSystemPrompt(),
-        messages: history,
-      }),
-    });
-    if (!res.ok) {
-      let errMsg = 'HTTP ' + res.status;
-      try {
-        const err = await res.json();
-        if (err && err.error && err.error.message) errMsg += ': ' + err.error.message;
-      } catch {}
-      throw new Error(errMsg);
-    }
-    const data = await res.json();
-    const text = (data.content || [])
-      .filter(b => b.type === 'text')
-      .map(b => b.text).join('');
-    return text || '(応答なし)';
-  }
-
-  function stripHtmlTags(s) {
-    const tmp = document.createElement('div');
-    tmp.innerHTML = s;
-    return tmp.textContent || tmp.innerText || '';
-  }
-
-  // ──────── sendChat(本物のClaude API) ────────
-  async function sendChat() {
-    const input = document.getElementById('chat-input');
-    const text = input.value.trim();
-    if (!text) return;
-
-    // APIキー未設定なら警告
-    if (!getApiKey()) {
-      alert('Claude APIキーが設定されていません。\n右上の「⚙ 設定」から登録してください。');
-      openSettings();
-      return;
-    }
-
-    state.chatMessages.push({ role: 'user', text: escapeHtml(text) });
-    input.value = '';
-    // ローディング状態を追加
-    state.chatMessages.push({ role: 'loading', text: '' });
-    renderChat();
-
-    try {
-      const reply = await callClaudeAPI(text);
-      // ローディングを削除して正式応答を追加
-      state.chatMessages = state.chatMessages.filter(m => m.role !== 'loading');
-      state.chatMessages.push({
-        role: 'assistant',
-        text: escapeHtml(reply).replace(/\n/g, '<br>')
-      });
-    } catch (e) {
-      console.error(e);
-      state.chatMessages = state.chatMessages.filter(m => m.role !== 'loading');
-      state.chatMessages.push({
-        role: 'assistant',
-        text: '<span style="color: #A32D2D;">⚠ エラー: ' + escapeHtml(e.message || '不明なエラー') + '</span><br><span style="color: #888780; font-size: 11px;">APIキーが正しいか、ネットワーク接続を確認してください。</span>'
-      });
-    }
-    renderChat();
-  }
-
-  function renderChat() {
-    const messages = document.getElementById('chat-messages');
-    if (!messages) return;
-
-    // APIキー未設定時の案内バナーを上部に
-    const hasKey = !!getApiKey();
-    const userDisplayName = (WEEKLY_CONFIG && WEEKLY_CONFIG.userName) ? WEEKLY_CONFIG.userName.split(/\s+/)[0] : 'あなた';
-
-    let warningHtml = '';
-    if (!hasKey) {
-      warningHtml = `
-        <div class="chat-api-warning">
-          <strong>⚙ Claude APIキーを設定してください</strong><br>
-          設定すると、CONNECT Studio内であなたの営業活動をサポートするAIアシスタントが使えるようになります。
-          <br>
-          <button onclick="openSettings()">設定を開く</button>
-        </div>
-      `;
-    }
 
-    messages.innerHTML = warningHtml + state.chatMessages.map(m => {
-      if (m.role === 'loading') {
-        return `
-          <div class="chat-msg assistant">
-            <div class="chat-msg-meta">Claude</div>
-            <div class="chat-msg-bubble"><span class="chat-spinner"></span>応答を生成中...</div>
-          </div>
-        `;
-      }
-      return `
-        <div class="chat-msg ${m.role}">
-          <div class="chat-msg-meta">${m.role === 'user' ? escapeHtml(userDisplayName) : 'Claude'}</div>
-          <div class="chat-msg-bubble">${m.text}</div>
-        </div>
-      `;
-    }).join('');
-    messages.scrollTop = messages.scrollHeight;
-  }
-
-  document.getElementById('chat-input').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendChat();
-    }
-  });
-
-  // === 履歴書変換 デモ ===
-  function startDemoConversion() {
-    const sampleNames = ['山田太郎_履歴書.pdf', '佐藤花子_履歴書.docx', '鈴木一郎_履歴書.pdf'];
-    sampleNames.forEach((name, i) => {
-      setTimeout(() => {
-        const file = {
-          id: 'f' + (++state.fileCounter),
-          name: name,
-          progress: 0,
-          done: false
-        };
-        state.files.push(file);
-        renderFiles();
-        updateResumeBadge();
-        setNavWorking('resume', true);
-
-        // プログレス更新(7秒で完了)
-        const interval = setInterval(() => {
-          file.progress += 100 / 14; // 0.5秒ごとに約7%
-          if (file.progress >= 100) {
-            file.progress = 100;
-            file.done = true;
-            clearInterval(interval);
-            addLog('履歴書 ' + name + ' を変換完了 ✓');
-            // 全ファイル完了したらドット消す
-            if (state.files.every(f => f.done)) {
-              setNavWorking('resume', false);
-            }
-          }
-          renderFiles();
-        }, 500);
-      }, i * 800);
-    });
-  }
-
-  function renderFiles() {
-    const list = document.getElementById('file-list');
-    const count = document.getElementById('file-count');
-    if (count) count.textContent = state.files.length > 0 ? '(' + state.files.length + '件)' : '(0件)';
-
-    if (state.files.length === 0) {
-      list.innerHTML = '<p style="font-size: 12px; color: #888780; padding: 16px 0; text-align: center;">まだファイルはありません。上の「デモ」ボタンを押してみてください。</p>';
-      return;
-    }
-
-    list.innerHTML = state.files.map(f => `
-      <div class="file-item">
-        <div class="file-icon">
-          <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
-            <path d="M5 2h6l3 3v11H5V2z" stroke="#FFFEFA" stroke-width="1.6" stroke-linejoin="round" fill="${f.done ? '#639922' : '#F0997B'}"/>
-          </svg>
-        </div>
-        <div class="file-info">
-          <div class="file-name">${escapeHtml(f.name)}</div>
-          <div class="file-status">${f.done ? '✓ 変換完了 / Excelエクスポート可能' : '変換中... ' + Math.round(f.progress) + '%'}</div>
-          <div class="file-progress-wrap">
-            <div class="file-progress ${f.done ? 'done' : ''}" style="width: ${f.progress}%;"></div>
-          </div>
-        </div>
-        <button class="file-action ${f.done ? '' : 'disabled'}" ${f.done ? '' : 'disabled'}>
-          ${f.done ? '↓ DL' : '処理中'}
-        </button>
-      </div>
-    `).join('');
-  }
-
-  function updateResumeBadge() {
-    const badge = document.getElementById('resume-badge');
-    const working = state.files.filter(f => !f.done).length;
-    if (working > 0) {
-      badge.textContent = working;
-      badge.className = 'badge-num badge-hot';
-    } else if (state.files.length > 0) {
-      badge.textContent = state.files.length;
-      badge.className = 'badge-num badge-mute';
-    } else {
-      badge.textContent = '0';
-      badge.className = 'badge-num badge-mute';
-    }
-  }
-
-  function setNavWorking(pane, on) {
-    const item = document.querySelector('[data-pane="' + pane + '"]');
-    if (!item) return;
-    if (on) item.classList.add('working');
-    else item.classList.remove('working');
-  }
-
-  function addLog(text) {
-    const log = document.getElementById('log-list');
-    const item = document.createElement('div');
-    item.className = 'log-item';
-    item.innerHTML = `
-      <div class="log-dot green"></div>
-      <div><div class="log-time">たった今</div><div class="log-text">${escapeHtml(text)}</div></div>
-    `;
-    log.insertBefore(item, log.firstChild);
-  }
-
-  // === Util ===
-  function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  }
-
-  // ════════════════════════════════════════════════════════════════
-  // === WEEKLY_CONFIG → 右パネル描画 ===
-  // ════════════════════════════════════════════════════════════════
-
-  // 現在のユーザー(URLパラメータから解決)
-  let CURRENT_USER = null;
-  let CURRENT_USER_KEY = null;
-
-  function renderWeeklyConfig() {
-    if (typeof WEEKLY_CONFIG === 'undefined') return;
-    // モチベーションメッセージ(URL不要・最初に表示)
-    renderMotivation();
-    // URLパラメータからユーザー解決
-    resolveUserFromURL();
-    // 即時描画(WEEKLY_CONFIG由来の部分)
-    renderFocus();
-    renderTodaysNote();
-    // 工房ログは初期表示(WEEKLY_CONFIG由来)→ スプレッドシートから取れたら上書き
-    renderWorkshopLog();
-    // 本日のToDo(Todoistカレンダー)を非同期取得
-    renderScheduleSection();
-    // ユーザーが解決できれば、スプレッドシートから取得 → KPIとコーチを描画
-    if (CURRENT_USER_KEY != null && USER_MAP[CURRENT_USER_KEY] !== undefined) {
-      renderKPILoading();
-      renderCoachLoading();
-      fetchSheetAndRender();
-    } else {
-      // URL未指定 / 不明ユーザー → 案内表示
-      renderUserRequired();
-    }
-    // チームログはユーザー指定なしでも描画(全員のデータを引っ張る)
-    fetchAllUsersAndRenderTeamLog();
-  }
-
-  // ─────── モチベーションメッセージ(日付シード) ───────
-  function renderMotivation() {
-    const el = document.getElementById('motivation-text');
-    if (!el) return;
-    const today = new Date();
-    const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
-    const idx = seed % MOTIVATION_MESSAGES.length;
-    el.textContent = MOTIVATION_MESSAGES[idx];
-  }
-
-  // ──────── 本日の予定(個人カレンダー) ────────
-  function renderScheduleSection() {
-    const c = document.getElementById('schedule-container');
-    if (!c) return;
-
-    // ユーザー未指定なら案内
-    if (!CURRENT_USER_KEY || USER_MAP[CURRENT_USER_KEY] === undefined) {
-      c.innerHTML = `
-        <p class="panel-title">本日のToDo</p>
-        <div class="schedule-loading">ユーザーを指定してください</div>
-      `;
-      return;
-    }
-
-    // 取得対象のカレンダーIDを決定(個人 → なければ共通Todoist)
-    const personalCal = CALENDAR_MAP[CURRENT_USER_KEY];
-    const calendarId = personalCal || SHARED_CALENDAR_ID;
-
-    c.innerHTML = `
-      <p class="panel-title">本日のToDo <span style="color: #888780; font-weight: 400; font-size: 10px;">${personalCal ? '/ 個人' : '/ Todoist'}</span></p>
-      <div class="schedule-loading">📋 読み込み中...</div>
-    `;
-
-    fetchTodayEvents(calendarId).then(events => {
-      renderScheduleEvents(c, events, !!personalCal);
-    }).catch(err => {
-      console.error('Calendar fetch error:', err);
-      c.innerHTML = `
-        <p class="panel-title">本日のToDo</p>
-        <div class="schedule-empty">読み込めませんでした<br><span style="font-size: 10px; color: #A32D2D;">${escapeHtml(err.message || '')}</span></div>
-      `;
-    });
-  }
-
-  // 公開カレンダーのicalフィードを取得して、今日のイベントだけ抽出
-  async function fetchTodayEvents(calendarId) {
-    // Google Calendar の public ical URL
-    const url = `https://calendar.google.com/calendar/ical/${encodeURIComponent(calendarId)}/public/basic.ics`;
-    // CORS対策のため、Netlify上で動くにはブラウザから直接読めるカレンダーが必要
-    // 公開カレンダーなら Access-Control-Allow-Origin: * が返るので、fetchで読める
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('HTTP ' + res.status + ' (公開設定を確認)');
-    const ics = await res.text();
-    return parseICSForToday(ics);
-  }
-
-  // ICSをパースして「今日」のイベントを抽出
-  function parseICSForToday(ics) {
-    const today = new Date();
-    const y = today.getFullYear();
-    const m = today.getMonth();
-    const d = today.getDate();
-    const dayStart = new Date(y, m, d, 0, 0, 0);
-    const dayEnd = new Date(y, m, d, 23, 59, 59);
-
-    // VEVENTブロックを抽出
-    const events = [];
-    const blocks = ics.split('BEGIN:VEVENT').slice(1);
-    for (const blk of blocks) {
-      const end = blk.indexOf('END:VEVENT');
-      const body = end >= 0 ? blk.slice(0, end) : blk;
-      const ev = parseVEvent(body);
-      if (!ev) continue;
-      // 終日イベント or 時間あり
-      if (isWithinDay(ev, dayStart, dayEnd)) {
-        events.push(ev);
-      }
-    }
-    // 開始時刻順
-    events.sort((a, b) => (a.start || 0) - (b.start || 0));
-    return events;
-  }
-
-  function parseVEvent(body) {
-    // 行を結合(改行+スペースは継続行)
-    const text = body.replace(/\r\n[ \t]/g, '').replace(/\n[ \t]/g, '');
-    const lines = text.split(/\r?\n/);
-    const ev = { allDay: false };
-    for (const line of lines) {
-      if (!line) continue;
-      // RRULEなどはスキップ(簡易実装)
-      if (line.startsWith('SUMMARY')) {
-        const idx = line.indexOf(':');
-        if (idx >= 0) ev.summary = unescapeICS(line.slice(idx + 1));
-      } else if (line.startsWith('DTSTART')) {
-        ev.start = parseICSDate(line);
-        ev.allDay = isAllDayLine(line);
-      } else if (line.startsWith('DTEND')) {
-        ev.end = parseICSDate(line);
-      }
-    }
-    return ev.summary ? ev : null;
-  }
-
-  function isAllDayLine(line) {
-    return /VALUE=DATE(?!-TIME)/i.test(line);
-  }
-
-  function unescapeICS(s) {
-    return s.replace(/\\n/g, '\n').replace(/\\,/g, ',').replace(/\\;/g, ';').replace(/\\\\/g, '\\');
-  }
-
-  function parseICSDate(line) {
-    // 値部分を取り出す
-    const idx = line.indexOf(':');
-    if (idx < 0) return null;
-    const val = line.slice(idx + 1).trim();
-    // 形式: 20260427T010000Z(UTC) / 20260427T100000(local) / 20260427(date)
-    if (/^\d{8}$/.test(val)) {
-      // 終日
-      return new Date(parseInt(val.slice(0, 4)), parseInt(val.slice(4, 6)) - 1, parseInt(val.slice(6, 8)), 0, 0, 0);
-    }
-    const m = val.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z?)$/);
-    if (m) {
-      const [_, y, mo, d, h, mi, s, z] = m;
-      if (z === 'Z') {
-        return new Date(Date.UTC(+y, +mo - 1, +d, +h, +mi, +s));
-      } else {
-        return new Date(+y, +mo - 1, +d, +h, +mi, +s);
-      }
-    }
-    return null;
-  }
-
-  function isWithinDay(ev, dayStart, dayEnd) {
-    if (!ev.start) return false;
-    if (ev.allDay) {
-      // 終日:start日が今日と一致
-      return ev.start.getFullYear() === dayStart.getFullYear()
-        && ev.start.getMonth() === dayStart.getMonth()
-        && ev.start.getDate() === dayStart.getDate();
-    }
-    return ev.start >= dayStart && ev.start <= dayEnd;
-  }
-
-  function renderScheduleEvents(c, events, isPersonal) {
-    const colors = ['amber', 'purple', 'teal', 'gray'];
-    const sourceLabel = isPersonal ? '/ 個人' : '/ Todoist';
-    if (events.length === 0) {
-      c.innerHTML = `
-        <p class="panel-title">本日のToDo <span style="color: #888780; font-weight: 400; font-size: 10px;">${sourceLabel}</span></p>
-        <div class="schedule-empty">今日のタスクはありません ✅</div>
-      `;
-      return;
-    }
-    c.innerHTML = `
-      <p class="panel-title">本日のToDo <span style="color: #888780; font-weight: 400; font-size: 10px;">${sourceLabel} ${events.length}件</span></p>
-      <div class="schedule-list">
-        ${events.map((ev, i) => {
-          const timeLabel = ev.allDay ? '終日' : (ev.start ? formatTime(ev.start) : '');
-          return `
-            <div class="schedule-item ${colors[i % colors.length]}">
-              <div class="schedule-time">${escapeHtml(timeLabel)}</div>
-              <div class="schedule-title">${escapeHtml(ev.summary || '(タイトルなし)')}</div>
-            </div>
-          `;
-        }).join('')}
-      </div>
-    `;
-  }
-
-  function formatTime(d) {
-    const h = String(d.getHours()).padStart(2, '0');
-    const m = String(d.getMinutes()).padStart(2, '0');
-    return `${h}:${m}`;
-  }
-
-
-  function resolveUserFromURL() {
-    const params = new URLSearchParams(window.location.search);
-    const u = (params.get('user') || '').toLowerCase().trim();
-    CURRENT_USER_KEY = u || null;
-  }
-
-  function renderUserRequired() {
-    // KPIエリアに案内を表示
-    const c = document.getElementById('kpi-container');
-    if (c) {
-      const validKeys = Object.keys(USER_MAP).slice(0, 3).join(', ');
-      c.innerHTML = `
-        <div class="user-required">
-          <p class="user-required-title">👤 ユーザーIDが必要です</p>
-          <p class="user-required-desc">
-            URL の末尾に <strong>?user=あなたのID</strong> を追加してください。
-          </p>
-          <div class="user-required-example">
-            例:<br>
-            ?user=<strong>yamaguchi</strong><br>
-            ?user=<strong>asami</strong><br>
-            <br>
-            利用可能ID: ${Object.keys(USER_MAP).join(', ')}
-          </div>
-        </div>
-      `;
-    }
-    // コーチエリアにも控えめなメッセージ
-    const cc = document.getElementById('coach-container');
-    if (cc) {
-      cc.innerHTML = `
-        <div class="coach-box">
-          <p class="coach-eyebrow">✨ TODAY'S COACH</p>
-          <p class="coach-text" style="color: #888780;">ユーザーIDが指定されると、あなた専用のメッセージが表示されます。</p>
-        </div>
-      `;
-    }
-    // アバターは「?」
-    const av = document.getElementById('user-avatar');
-    if (av) { av.textContent = '?'; av.title = 'ユーザー未指定'; }
-  }
-
-  function renderKPILoading() {
-    const c = document.getElementById('kpi-container');
-    if (c) c.innerHTML = '<p class="panel-title">営業進捗 <span style="color: #888780; font-weight: 400; font-size: 10px;">/ 今月</span></p><div class="kpi-loading">📊 スプレッドシートから読み込み中...</div>';
-  }
-
-  function renderCoachLoading() {
-    const c = document.getElementById('coach-container');
-    if (c) c.innerHTML = '<div class="coach-box"><p class="coach-eyebrow">✨ TODAY\'S COACH</p><p class="coach-text" style="color: #888780;">あなた専用のメッセージを準備中...</p></div>';
-  }
-
-  function renderKPIError(msg) {
-    const c = document.getElementById('kpi-container');
-    if (c) c.innerHTML = `<p class="panel-title">営業進捗</p><div class="kpi-error">⚠ データ取得エラー<br><span style="font-size: 10px;">${escapeHtml(msg || '')}</span></div>`;
-  }
+    margin-top: 12px; padding: 8px 10px; background: #EAF3DE;
 
-  // ── スプレッドシートを取得 ──
-  async function fetchSheetAndRender() {
-    try {
-      const url = `https://docs.google.com/spreadsheets/d/${SHEET_CONFIG.sheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_CONFIG.sheetName)}&range=${encodeURIComponent(SHEET_CONFIG.range)}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const text = await res.text();
-      // gviz APIは google.visualization.Query.setResponse(...) でラップされたJSONを返す
-      const jsonMatch = text.match(/setResponse\(([\s\S]+)\);?\s*$/);
-      if (!jsonMatch) throw new Error('レスポンスのパースに失敗');
-      const data = JSON.parse(jsonMatch[1]);
-      const rows = (data.table && data.table.rows) || [];
-      // rows[0]はヘッダー行(A11)、rows[1]以降が個人データ(A12〜)
-      // USER_MAPのインデックスは「データ部分の0始まり」なので rows[CURRENT_USER_KEY+1]
-      const userRowIndex = USER_MAP[CURRENT_USER_KEY] + 1;
-      const userRow = rows[userRowIndex];
-      if (!userRow) throw new Error('該当ユーザーの行が見つかりません');
-      // セルからデータを抽出
-      const u = extractUserData(userRow);
-      CURRENT_USER = u;
-      // 描画
-      renderUserAvatarFromName(u.name);
-      renderKPIFromSheet(u);
-      renderCoachFromAchievement(u);
-    } catch (e) {
-      console.error('Sheet fetch error:', e);
-      renderKPIError(e.message);
-      renderCoach(); // フォールバックで WEEKLY_CONFIG のメッセージ
-    }
-  }
-
-  // 行データから個人情報を取り出す
-  function extractUserData(row) {
-    const c = (i) => {
-      const cell = row.c && row.c[i];
-      if (!cell) return null;
-      return cell.v != null ? cell.v : (cell.f != null ? cell.f : null);
-    };
-    const num = (i) => {
-      const v = c(i);
-      if (v == null || v === '') return 0;
-      const n = typeof v === 'number' ? v : parseFloat(String(v).replace(/[^\d.\-]/g, ''));
-      return isNaN(n) ? 0 : n;
-    };
-    // 列: A=0, B=1, ... S=18
-    return {
-      name:        c(0)  || '',   // A: 名前
-      budget:      num(1),         // B: 売上予算
-      remaining:   num(2),         // C: 残り
-      rate:        num(3),         // D: 達成率(0-1 or % どちらでも対応)
-      sales:       num(4),         // E: 売上
-      target:      num(9),         // J: 目標
-      salesR:      num(10),        // K: 売上(右側)
-      rateR:       num(11),        // L: 達成率(右側)
-      fullSales:   num(12),        // M: 常勤売上
-      partSales:   num(13),        // N: 非常勤売上
-      fullInq:     num(14),        // O: 常勤問合せ数
-      partInq:     num(15),        // P: 非常勤問合せ数
-      interviews:  num(16),        // Q: 面接数
-      decisions:   num(17),        // R: 決定数
-      decisionRate:num(18),        // S: 決定率
-    };
-  }
-
-  // 達成率は 0.6 のような小数か 60 のようなパーセントどちらかなので正規化
-  function normalizeRateToPercent(rate) {
-    if (rate == null || isNaN(rate)) return 0;
-    return rate <= 1 ? rate * 100 : rate;
-  }
-
-  function renderUserAvatarFromName(name) {
-    const el = document.getElementById('user-avatar');
-    if (!el) return;
-    const trimmed = (name || '').trim();
-    el.textContent = trimmed.slice(0, 1) || '?';
-    el.title = trimmed;
-  }
-
-  // KPI描画(スプレッドシートデータから)
-  function renderKPIFromSheet(u) {
-    const c = document.getElementById('kpi-container');
-    if (!c) return;
-    const ratePct = normalizeRateToPercent(u.rate);
-    const decRatePct = normalizeRateToPercent(u.decisionRate);
-    const fmt = (n) => {
-      if (n == null || isNaN(n)) return '0';
-      // 1万以上は万単位に丸める
-      return Math.round(n).toLocaleString('ja-JP');
-    };
-
-    c.innerHTML = `
-      <div class="kpi-section-header">
-        <p class="panel-title" style="margin-bottom: 0;">営業進捗 <span style="color: #888780; font-weight: 400; font-size: 10px;">/ 今月</span></p>
-        <span class="kpi-user-tag">${escapeHtml(u.name || CURRENT_USER_KEY)}</span>
-      </div>
-
-      <div class="kpi-row">
-        <div class="kpi-label-row">
-          <span class="kpi-label">売上達成率</span>
-          <span class="kpi-value"><strong>${ratePct.toFixed(1)}</strong><span class="kpi-percent">%</span></span>
-        </div>
-        <div class="kpi-bar-wrap">
-          <div class="kpi-bar warm" style="width: ${Math.min(ratePct, 100)}%;"></div>
-        </div>
-      </div>
-
-      <div class="kpi-mini-grid">
-        <div class="kpi-mini">
-          <div class="kpi-mini-label">今月売上</div>
-          <div class="kpi-mini-value">${fmt(u.sales)}<span class="unit">円</span></div>
-        </div>
-        <div class="kpi-mini">
-          <div class="kpi-mini-label">売上目標</div>
-          <div class="kpi-mini-value">${fmt(u.budget)}<span class="unit">円</span></div>
-        </div>
-        <div class="kpi-mini">
-          <div class="kpi-mini-label">面接数</div>
-          <div class="kpi-mini-value">${fmt(u.interviews)}<span class="unit">件</span></div>
-        </div>
-        <div class="kpi-mini">
-          <div class="kpi-mini-label">決定数</div>
-          <div class="kpi-mini-value">${fmt(u.decisions)}<span class="unit">件</span></div>
-        </div>
-        <div class="kpi-mini" style="grid-column: span 2;">
-          <div class="kpi-mini-label">決定率</div>
-          <div class="kpi-mini-value">${decRatePct.toFixed(1)}<span class="unit">%</span></div>
-        </div>
-      </div>
-    `;
-  }
-
-  // コーチメッセージ(達成率に応じて自動切替)
-  function renderCoachFromAchievement(u) {
-    const c = document.getElementById('coach-container');
-    if (!c) return;
-    const pct = normalizeRateToPercent(u.rate);
-    let msg;
-    if (pct < 50) {
-      msg = '目標まで折り返し前。今週の行動量を見直しましょう。商談数を増やすことが最優先です。';
-    } else if (pct < 80) {
-      msg = '順調に進んでいます。残り目標まであと少し。今週は成約確度の高い案件に集中を。';
-    } else if (pct <= 100) {
-      msg = '目標達成まであと一息! このペースを維持して最後まで駆け抜けましょう。';
-    } else {
-      msg = '目標達成おめでとうございます! 来期の仕込みを始めるタイミングです。';
-    }
-    c.innerHTML = `
-      <div class="coach-box">
-        <p class="coach-eyebrow">✨ TODAY'S COACH</p>
-        <p class="coach-text">${escapeHtml(msg)}</p>
-      </div>
-    `;
-  }
-
-  // === 旧:WEEKLY_CONFIG由来のユーザーアバター(URLなし時のフォールバック用) ===
-  // 既存の renderUserAvatar も残しておく(URL指定なしでも動く保険)
-
-  // ヘッダーアバター(イニシャル2文字)
-  function renderUserAvatar() {
-    const el = document.getElementById('user-avatar');
-    if (!el) return;
-    const name = (WEEKLY_CONFIG.userName || '').trim();
-    // 苗字の頭文字 + 名前の頭文字 で2文字、なければ最初の2文字
-    const parts = name.split(/\s+/);
-    let initials = '';
-    if (parts.length >= 2) {
-      initials = (parts[0][0] || '') + (parts[1][0] || '');
-    } else {
-      initials = name.slice(0, 2);
-    }
-    el.textContent = initials.toUpperCase() || 'YK';
-    el.title = name;
-  }
-
-  // ① KPI
-  function renderKPI() {
-    const c = document.getElementById('kpi-container');
-    if (!c) return;
-    const k = WEEKLY_CONFIG.kpi || {};
-    const pct = (cur, tar) => tar > 0 ? Math.round((cur / tar) * 100) : 0;
-    const talks = k.talks || { current: 0, target: 0 };
-    const contracts = k.contracts || { current: 0, target: 0 };
-    const sales = k.sales || { current: 0, target: 0 };
-    const trendArrow = k.momPositive ? '↗' : '↘';
-    const trendClass = k.momPositive ? 'positive' : 'negative';
-    const trendText = k.momPositive ? 'いい流れです' : '巻き返しのチャンス';
-
-    c.innerHTML = `
-      <p class="panel-title">営業進捗 <span style="color: #888780; font-weight: 400; font-size: 10px;">/ 今月</span></p>
-
-      <div class="kpi-row">
-        <div class="kpi-label-row">
-          <span class="kpi-label">商談数</span>
-          <span class="kpi-value"><strong>${talks.current}</strong> <span class="target">/ ${talks.target}</span><span class="kpi-percent">${pct(talks.current, talks.target)}%</span></span>
-        </div>
-        <div class="kpi-bar-wrap"><div class="kpi-bar amber" style="width: ${Math.min(pct(talks.current, talks.target), 100)}%;"></div></div>
-      </div>
-
-      <div class="kpi-row">
-        <div class="kpi-label-row">
-          <span class="kpi-label">成約数</span>
-          <span class="kpi-value"><strong>${contracts.current}</strong> <span class="target">/ ${contracts.target}</span><span class="kpi-percent">${pct(contracts.current, contracts.target)}%</span></span>
-        </div>
-        <div class="kpi-bar-wrap"><div class="kpi-bar coral" style="width: ${Math.min(pct(contracts.current, contracts.target), 100)}%;"></div></div>
-      </div>
-
-      <div class="kpi-row">
-        <div class="kpi-label-row">
-          <span class="kpi-label">売上</span>
-          <span class="kpi-value"><strong>${sales.current}</strong><span class="target"> / ${sales.target} 万円</span><span class="kpi-percent">${pct(sales.current, sales.target)}%</span></span>
-        </div>
-        <div class="kpi-bar-wrap"><div class="kpi-bar warm" style="width: ${Math.min(pct(sales.current, sales.target), 100)}%;"></div></div>
-      </div>
-
-      <div class="kpi-trend ${trendClass}">
-        <span class="kpi-trend-icon">${trendArrow} ${escapeHtml(k.momChange || '')}</span>
-        <span class="kpi-trend-text">前月比 / ${trendText}</span>
-      </div>
-    `;
-  }
-
-  // ② AIコーチ
-  function renderCoach() {
-    const c = document.getElementById('coach-container');
-    if (!c) return;
-    c.innerHTML = `
-      <div class="coach-box">
-        <p class="coach-eyebrow">✨ TODAY'S COACH</p>
-        <p class="coach-text">${escapeHtml(WEEKLY_CONFIG.coachMessage || '')}</p>
-      </div>
-    `;
-  }
-
-  // ③ 今週のフォーカス
-  function renderFocus() {
-    const c = document.getElementById('focus-container');
-    if (!c) return;
-    const items = WEEKLY_CONFIG.weeklyFocus || [];
-    c.innerHTML = `
-      <p class="panel-title">今週のフォーカス <span style="color: #888780; font-weight: 400; font-size: 10px;">/ ${items.length} 件</span></p>
-      <div class="focus-list">
-        ${items.map(t => `
-          <div class="focus-item" onclick="toggleFocus(this)">
-            <div class="focus-check"></div>
-            <span class="focus-text">${escapeHtml(t)}</span>
-          </div>
-        `).join('')}
-      </div>
-      <div class="focus-progress-wrap">
-        <div class="focus-progress-bar">
-          <div class="focus-progress-fill" id="focus-progress-fill" style="width: 0%;"></div>
-        </div>
-        <span id="focus-progress-label">0/${items.length}件 完了</span>
-      </div>
-      <div class="focus-celebration" id="focus-celebration"></div>
-    `;
-  }
-
-  // ④ TODAY'S NOTE
-  function renderTodaysNote() {
-    const c = document.getElementById('note-container');
-    if (!c) return;
-    c.innerHTML = `
-      <p class="panel-eyebrow">TODAY'S NOTE</p>
-      <p class="note-box">${escapeHtml(WEEKLY_CONFIG.todaysNote || '')}</p>
-    `;
-  }
-
-  // ─────── チームログ(スプレッドシートから全員のデータ) ───────
-  async function fetchAllUsersAndRenderTeamLog() {
-    try {
-      const url = `https://docs.google.com/spreadsheets/d/${SHEET_CONFIG.sheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_CONFIG.sheetName)}&range=${encodeURIComponent(SHEET_CONFIG.range)}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const text = await res.text();
-      const m = text.match(/setResponse\(([\s\S]+)\);?\s*$/);
-      if (!m) throw new Error('レスポンスのパースに失敗');
-      const data = JSON.parse(m[1]);
-      const rows = (data.table && data.table.rows) || [];
-      // rows[0]はヘッダー、rows[1]以降が個人データ
-      const allUsers = [];
-      for (let i = 1; i < rows.length; i++) {
-        const row = rows[i];
-        if (!row || !row.c) continue;
-        const u = extractUserData(row);
-        if (!u.name) continue;
-        allUsers.push(u);
-      }
-      renderTeamWorkshopLog(allUsers);
-    } catch (e) {
-      console.warn('Team log fetch failed, fallback to WEEKLY_CONFIG:', e);
-      // 失敗時はそのまま WEEKLY_CONFIG.workshopLog を使う(renderWorkshopLogが既に呼ばれている)
-    }
-  }
-
-  function renderTeamWorkshopLog(allUsers) {
-    const c = document.getElementById('log-container');
-    if (!c) return;
-
-    // 動きのある投稿候補を生成
-    const items = [];
-
-    // 達成率100%超の人(全員)
-    const achieved = allUsers.filter(u => normalizeRateToPercent(u.rate) >= 100);
-    achieved.forEach(u => {
-      items.push({
-        color: 'green',
-        text: `🎉 ${u.name}さん、目標達成! (${normalizeRateToPercent(u.rate).toFixed(0)}%)`,
-      });
-    });
-
-    // 達成率80%以上(達成者除く)
-    const closing = allUsers
-      .filter(u => {
-        const p = normalizeRateToPercent(u.rate);
-        return p >= 80 && p < 100;
-      })
-      .sort((a, b) => normalizeRateToPercent(b.rate) - normalizeRateToPercent(a.rate))
-      .slice(0, 2);
-    closing.forEach(u => {
-      items.push({
-        color: 'amber',
-        text: `🔥 ${u.name}さん、達成率 ${normalizeRateToPercent(u.rate).toFixed(0)}%`,
-      });
-    });
-
-    // 決定数の多い順 上位2名
-    const topDecisions = [...allUsers]
-      .filter(u => u.decisions > 0)
-      .sort((a, b) => b.decisions - a.decisions)
-      .slice(0, 2);
-    topDecisions.forEach(u => {
-      items.push({
-        color: 'green',
-        text: `⭐ ${u.name}さん、今月決定 ${u.decisions} 件`,
-      });
-    });
-
-    // 面接数の多い順 上位2名
-    const topInterviews = [...allUsers]
-      .filter(u => u.interviews > 0)
-      .sort((a, b) => b.interviews - a.interviews)
-      .slice(0, 2);
-    topInterviews.forEach(u => {
-      items.push({
-        color: 'purple',
-        text: `🎯 ${u.name}さん、今月面接 ${u.interviews} 件`,
-      });
-    });
-
-    // 重複除去(同じテキストは1つに)
-    const seen = new Set();
-    const unique = items.filter(it => {
-      if (seen.has(it.text)) return false;
-      seen.add(it.text);
-      return true;
-    });
-
-    // 候補がなければ WEEKLY_CONFIG にフォールバック
-    if (unique.length === 0) {
-      renderWorkshopLog();
-      return;
-    }
-
-    // 日付シードでシャッフルして上位6件
-    const seed = (() => {
-      const t = new Date();
-      return t.getFullYear() * 10000 + (t.getMonth() + 1) * 100 + t.getDate();
-    })();
-    const shuffled = seededShuffle(unique, seed).slice(0, 6);
-
-    c.innerHTML = `
-      <p class="panel-title">チームの動き <span style="color: #888780; font-weight: 400; font-size: 10px;">/ リアルタイム</span></p>
-      <div class="log-list">
-        ${shuffled.map(item => `
-          <div class="log-item">
-            <div class="log-dot ${item.color}"></div>
-            <div>
-              <div class="log-time">いま</div>
-              <div class="log-text">${escapeHtml(item.text)}</div>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    `;
-  }
-
-  // 日付シードで配列をシャッフル(同日中は同じ並び)
-  function seededShuffle(arr, seed) {
-    const a = arr.slice();
-    let s = seed;
-    for (let i = a.length - 1; i > 0; i--) {
-      s = (s * 9301 + 49297) % 233280;
-      const j = Math.floor((s / 233280) * (i + 1));
-      [a[i], a[j]] = [a[j], a[i]];
-    }
-    return a;
-  }
-
-  // ⑤ 工房ログ
-  function renderWorkshopLog() {
-    const c = document.getElementById('log-container');
-    if (!c) return;
-    const logs = WEEKLY_CONFIG.workshopLog || [];
-    // 順番に色を割り当て(amber → green → purple → amber...)
-    const colors = ['amber', 'green', 'purple'];
-    c.innerHTML = `
-      <p class="panel-title">工房ログ</p>
-      <div class="log-list" id="log-list">
-        ${logs.map((l, i) => `
-          <div class="log-item">
-            <div class="log-dot ${colors[i % colors.length]}"></div>
-            <div>
-              <div class="log-time">${escapeHtml(l.time || '')}</div>
-              <div class="log-text">${escapeHtml(l.text || '')}</div>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    `;
-  }
-
-  // 前月比のスタイル(マイナス時は赤系)
-  // CSSでクラス分岐を追加するためのstyleを動的注入
-  (function injectKPITrendStyle() {
-    const s = document.createElement('style');
-    s.textContent = `
-      .kpi-trend.negative {
-        background: #FCEBEB;
-      }
-      .kpi-trend.negative .kpi-trend-icon { color: #A32D2D; }
-      .kpi-trend.negative .kpi-trend-text { color: #4A1B0C; }
-    `;
-    document.head.appendChild(s);
-  })();
-
-  // ════════════════════════════════════════════════════════════════
-
-  // === 今週のフォーカス チェックトグル + アニメーション + 進捗 ===
-  function toggleFocus(item) {
-    const check = item.querySelector('.focus-check');
-    const wasChecked = check.classList.contains('checked');
-    check.classList.toggle('checked');
-    item.classList.toggle('done');
-
-    // チェックが入った時だけスパークルアニメーション
-    if (!wasChecked) {
-      spawnSparkles(check);
-    }
+    border-radius: 6px; display: flex; align-items: center; gap: 6px; font-size: 11px;
 
-    updateFocusProgress();
   }
-
-  function spawnSparkles(target) {
-    const rect = target.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    const symbols = ['✨', '🎉', '⭐', '✨'];
-    for (let i = 0; i < 4; i++) {
-      const s = document.createElement('div');
-      s.className = 'sparkle-burst';
-      s.textContent = symbols[i % symbols.length];
-      s.style.left = cx + 'px';
-      s.style.top = cy + 'px';
-      const angle = (Math.PI * 2 * i) / 4 + Math.random() * 0.5;
-      const dist = 30 + Math.random() * 20;
-      s.style.setProperty('--dx', Math.cos(angle) * dist + 'px');
-      s.style.setProperty('--dy', Math.sin(angle) * dist + 'px');
-      document.body.appendChild(s);
-      setTimeout(() => s.remove(), 900);
-    }
-  }
-
-  function updateFocusProgress() {
-    const items = document.querySelectorAll('#focus-container .focus-item');
-    if (items.length === 0) return;
-    const done = document.querySelectorAll('#focus-container .focus-item.done').length;
-    const total = items.length;
-    const pct = Math.round((done / total) * 100);
-
-    const fill = document.getElementById('focus-progress-fill');
-    const label = document.getElementById('focus-progress-label');
-    const celeb = document.getElementById('focus-celebration');
-    if (fill) fill.style.width = pct + '%';
-    if (label) label.textContent = `${done}/${total}件 完了`;
-
-    if (celeb) {
-      if (done === total && total > 0) {
-        celeb.classList.add('show');
-        celeb.innerHTML = '🎊 今週のフォーカス、全部達成しました!';
-      } else {
-        celeb.classList.remove('show');
-      }
-    }
-  }
-
-  // 初期化
-  renderWeeklyConfig();
-  updateMailBadge();
-  renderMail();
-  updateResumeBadge();
-</script>
-
-<!-- 設定モーダル -->
-<div class="settings-modal-bg" id="settings-modal-bg" onclick="if(event.target===this)closeSettings()">
-  <div class="settings-modal">
-    <h3>⚙ 設定</h3>
-    <div class="settings-row">
-      <label class="settings-label" for="settings-api-key">Claude APIキー</label>
-      <input type="password" id="settings-api-key" class="settings-input"
-             placeholder="sk-ant-api03-..." autocomplete="off" spellcheck="false">
-      <p class="settings-help">
-        Anthropic Console(<a href="https://console.anthropic.com/" target="_blank" rel="noopener">console.anthropic.com</a>)で取得したAPIキーを入力してください。
-        キーはこのブラウザにのみ保存され、サーバーには送信されません。
-      </p>
-      <div class="settings-warning">
-        ⚠ <strong>注意:</strong> このキーはブラウザ内に保存されます。本番運用ではバックエンド経由での利用を推奨します。
-        共有PCでは利用後に「APIキーを削除」してください。
-      </div>
-    </div>
-    <div class="settings-actions">
-      <button class="settings-clear" onclick="clearSettings()">APIキーを削除</button>
-      <button class="settings-cancel" onclick="closeSettings()">キャンセル</button>
-      <button class="settings-save" onclick="saveSettings()">保存</button>
-    </div>
-  </div>
-</div>
 
-</body>
-</html>
+  .kpi-trend-icon
