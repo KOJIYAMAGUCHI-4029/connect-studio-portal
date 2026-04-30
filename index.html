@@ -2,7 +2,92 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>CONNECT Studio - v9 / 営業ダッシュボード追加</title>
+<title>CONNECT Studio - v11 / 個人別ダッシュボード</title>
+
+<script>
+/* ════════════════════════════════════════════════════════════════
+ ★★★ 毎週の更新はここ! ★★★
+ ★★★ 毎週の更新はここ! ★★★
+ ★★★ 毎週の更新はここ! ★★★
+════════════════════════════════════════════════════════════════════
+
+  📝 毎週月曜日にこの WEEKLY_CONFIG だけ書き換えればOK!
+  HTML や CSS の知識は不要です。下記のルールだけ守ってください:
+
+  ✅ 数字や文章の中身だけを書き換える
+  ✅ カンマ「,」と引用符「"」「'」は触らない
+  ✅ { } [ ] の括弧も触らない
+
+  ❌ ⬇⬇⬇ 編集してはいけないコードは、このブロックの下にあります ⬇⬇⬇
+
+═══════════════════════════════════════════════════════════════ */
+
+const WEEKLY_CONFIG = {
+
+  // 👤 今週の担当者名(ヘッダーに表示)
+  userName: "山口 孝二",
+
+  // 📊 営業進捗(今月の数字)
+  kpi: {
+    talks:     { current: 12,  target: 20  },   // 商談数
+    contracts: { current: 3,   target: 5   },   // 成約数
+    sales:     { current: 180, target: 300 },   // 売上(万円)
+    momChange:   "+8%",   // 前月比(例: "+8%" or "-3%")
+    momPositive: true,    // 前月比がプラスなら true / マイナスなら false
+  },
+
+  // 💡 今日のAIコーチメッセージ(毎週書き換え)
+  coachMessage: "今日は13:30に誠さんとの1on1があります。先週の進捗と今週の優先事項を3点まとめておくと、会議がより充実します。",
+
+  // 🎯 今週のフォーカス(3項目)
+  weeklyFocus: [
+    "クライアントA社のフォローアップ連絡",
+    "新規候補者3名のスカウト送信",
+    "月次レポートの作成(金曜締め)",
+  ],
+
+  // 📋 TODAY'S NOTE(チームへのひとこと)
+  todaysNote: "誠さんが履歴書変換ツール v0.8.2 をデプロイ。精度が一歩前進。",
+
+  // 🔨 工房ログ(最新3件)
+  workshopLog: [
+    { time: "10分前",  text: "問い合わせ 4 件" },
+    { time: "1時間前", text: "v0.8.2 を出荷 🔨" },
+    { time: "昨日",    text: "新しい仲間候補 12 名" },
+  ],
+
+};
+
+/* ════════════════════════════════════════════════════════════════
+   ⬆️ 更新するのはここまで。以下は触らないでください
+   ════════════════════════════════════════════════════════════════ */
+
+// ── スプレッドシート連携の設定(基本的に触らない)──
+const SHEET_CONFIG = {
+  sheetId: '1iflyQpsbC_nCdsiJcycuQv5ynus8A0d_Omx2Mc010_Y',
+  sheetName: 'シート1',
+  range: 'A11:S26',  // 11行目=ヘッダー、12〜25行目=個人データ
+};
+
+// ── URLキー(?user=xxx) → スプレッドシートの行番号(0始まり、データ部分のみ)──
+//   行番号 = スプレッドシート上の行 - 12  (12行目が0番目)
+const USER_MAP = {
+  yamaguchi: 0,   // 山口
+  asami:     1,   // 浅見
+  sato:      2,   // 佐藤
+  machida:   3,   // 町田
+  uemura:    4,   // 上村
+  takeuchi:  5,   // 竹内
+  izumi:     6,   // 和泉
+  katoa:     7,   // 加藤愛
+  adachi:    8,   // 安達
+  koguchi:   9,   // 古口
+  suzuki:    10,  // 鈴木
+  katoy:     11,  // 加藤優
+  yamada:    12,  // 山田
+  kase:      13,  // 加瀬
+};
+</script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -246,6 +331,86 @@
   .log-time { font-size: 10px; color: #888780; }
   .log-text { font-size: 11px; line-height: 1.45; }
 
+  /* === 個人別KPI(コンパクト6項目)=== */
+  .kpi-mini-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .kpi-mini {
+    background: #FFFEFA;
+    border: 0.5px solid #D3D1C7;
+    border-radius: 6px;
+    padding: 8px 10px;
+  }
+  .kpi-mini-label {
+    font-size: 10px; color: #888780;
+    margin-bottom: 2px;
+  }
+  .kpi-mini-value {
+    font-size: 14px; font-weight: 500;
+    color: #2C2C2A;
+    font-variant-numeric: tabular-nums;
+  }
+  .kpi-mini-value .unit {
+    font-size: 10px; color: #888780;
+    font-weight: 400; margin-left: 2px;
+  }
+
+  /* === ロード中・エラー === */
+  .kpi-loading, .kpi-error {
+    padding: 16px 12px;
+    text-align: center;
+    font-size: 11px;
+    color: #888780;
+    background: #FFFEFA;
+    border: 0.5px dashed #B4B2A9;
+    border-radius: 8px;
+  }
+  .kpi-error { color: #A32D2D; border-color: #F0997B; }
+
+  /* === URL未指定時の案内 === */
+  .user-required {
+    padding: 18px 16px;
+    background: linear-gradient(135deg, #FFFEFA 0%, #FAEEDA 100%);
+    border: 0.5px solid #EF9F27;
+    border-radius: 8px;
+    text-align: center;
+  }
+  .user-required-title {
+    font-size: 13px; font-weight: 500;
+    color: #2C2C2A; margin-bottom: 8px;
+  }
+  .user-required-desc {
+    font-size: 11px; line-height: 1.7;
+    color: #5F5E5A; margin-bottom: 12px;
+  }
+  .user-required-example {
+    font-size: 10px; color: #5F5E5A;
+    background: #FFFEFA;
+    padding: 6px 10px; border-radius: 4px;
+    border: 0.5px solid #D3D1C7;
+    word-break: break-all;
+    line-height: 1.6;
+    text-align: left;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .user-required-example strong { color: #BA7517; }
+
+  /* === ユーザー名表示(KPIヘッダーに) === */
+  .kpi-section-header {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 4px;
+  }
+  .kpi-user-tag {
+    font-size: 10px;
+    background: #FAEEDA;
+    color: #854F0B;
+    padding: 1px 8px;
+    border-radius: 10px;
+  }
+
   /* === 右パネル拡張(スクロール対応 + 新セクション) === */
   .sidebar-right {
     overflow-y: auto;
@@ -476,7 +641,7 @@
     </div>
     <div class="top-right">
       <span class="date">2026.04.27 月</span>
-      <div class="avatar">YK</div>
+      <div class="avatar" id="user-avatar">YK</div>
     </div>
   </div>
 
@@ -761,82 +926,21 @@
 
     </div>
 
-    <!-- 右サイド -->
-    <div class="sidebar-right">
+    <!-- 右サイド(中身は WEEKLY_CONFIG から自動描画されます) -->
+    <div class="sidebar-right" id="sidebar-right">
+      <!-- ① 営業進捗 -->
+      <div class="kpi-section" id="kpi-container"></div>
 
-      <!-- ① 営業進捗(KPIダッシュボード) -->
-      <div class="kpi-section">
-        <p class="panel-title">営業進捗 <span style="color: #888780; font-weight: 400; font-size: 10px;">/ 今月</span></p>
-
-        <div class="kpi-row">
-          <div class="kpi-label-row">
-            <span class="kpi-label">商談数</span>
-            <span class="kpi-value"><strong>12</strong> <span class="target">/ 20</span><span class="kpi-percent">60%</span></span>
-          </div>
-          <div class="kpi-bar-wrap">
-            <div class="kpi-bar amber" style="width: 60%;"></div>
-          </div>
-        </div>
-
-        <div class="kpi-row">
-          <div class="kpi-label-row">
-            <span class="kpi-label">成約数</span>
-            <span class="kpi-value"><strong>3</strong> <span class="target">/ 5</span><span class="kpi-percent">60%</span></span>
-          </div>
-          <div class="kpi-bar-wrap">
-            <div class="kpi-bar coral" style="width: 60%;"></div>
-          </div>
-        </div>
-
-        <div class="kpi-row">
-          <div class="kpi-label-row">
-            <span class="kpi-label">売上</span>
-            <span class="kpi-value"><strong>180</strong><span class="target"> / 300 万円</span><span class="kpi-percent">60%</span></span>
-          </div>
-          <div class="kpi-bar-wrap">
-            <div class="kpi-bar warm" style="width: 60%;"></div>
-          </div>
-        </div>
-
-        <div class="kpi-trend">
-          <span class="kpi-trend-icon">↗ +8%</span>
-          <span class="kpi-trend-text">前月比 / いい流れです</span>
-        </div>
-      </div>
-
-      <!-- ② 今日の行動アドバイス(AIコーチ) -->
-      <div>
-        <div class="coach-box">
-          <p class="coach-eyebrow">✨ TODAY'S COACH</p>
-          <p class="coach-text">今日は <strong>13:30 に誠さんとの 1on1</strong> があります。先週の進捗と今週の優先事項を 3 点まとめておくと、会議がより充実します。</p>
-        </div>
-      </div>
+      <!-- ② AIコーチ -->
+      <div id="coach-container"></div>
 
       <!-- ③ 今週のフォーカス -->
-      <div>
-        <p class="panel-title">今週のフォーカス <span style="color: #888780; font-weight: 400; font-size: 10px;">/ 3 件</span></p>
-        <div class="focus-list">
-          <div class="focus-item" onclick="toggleFocus(this)">
-            <div class="focus-check"></div>
-            <span class="focus-text">クライアントA社のフォローアップ連絡</span>
-          </div>
-          <div class="focus-item" onclick="toggleFocus(this)">
-            <div class="focus-check"></div>
-            <span class="focus-text">新規候補者 3 名のスカウト送信</span>
-          </div>
-          <div class="focus-item" onclick="toggleFocus(this)">
-            <div class="focus-check"></div>
-            <span class="focus-text">月次レポートの作成 <span class="focus-meta">(金曜締め)</span></span>
-          </div>
-        </div>
-      </div>
+      <div id="focus-container"></div>
 
-      <!-- 既存:TODAY'S NOTE -->
-      <div>
-        <p class="panel-eyebrow">TODAY'S NOTE</p>
-        <p class="note-box">誠さんが履歴書ツール v0.8.2 をデプロイ。精度が一歩前進。</p>
-      </div>
+      <!-- ④ TODAY'S NOTE -->
+      <div id="note-container"></div>
 
+      <!-- ⑤ 本日の予定(カレンダー直結なので固定) -->
       <div>
         <p class="panel-title">本日の予定</p>
         <div class="schedule-list">
@@ -847,30 +951,15 @@
         </div>
       </div>
 
-      <div>
-        <p class="panel-title">工房ログ</p>
-        <div class="log-list" id="log-list">
-          <div class="log-item">
-            <div class="log-dot amber"></div>
-            <div><div class="log-time">10分前</div><div class="log-text">問い合わせ 4 件</div></div>
-          </div>
-          <div class="log-item">
-            <div class="log-dot green"></div>
-            <div><div class="log-time">1時間前</div><div class="log-text">v0.8.2 を出荷 🔨</div></div>
-          </div>
-          <div class="log-item">
-            <div class="log-dot purple"></div>
-            <div><div class="log-time">昨日</div><div class="log-text">新しい仲間候補 12 名</div></div>
-          </div>
-        </div>
-      </div>
+      <!-- ⑥ 工房ログ -->
+      <div id="log-container"></div>
     </div>
 
   </div>
 
   <div class="footer">
     <span class="footer-text">Built by us, for us. — CONNECT Studio</span>
-    <span class="footer-note">v9 / KPI・AIコーチ・週次フォーカス追加</span>
+    <span class="footer-note">v11 / ?user= で個人別表示</span>
   </div>
 
 </div>
@@ -1176,6 +1265,390 @@
     return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
+  // ════════════════════════════════════════════════════════════════
+  // === WEEKLY_CONFIG → 右パネル描画 ===
+  // ════════════════════════════════════════════════════════════════
+
+  // 現在のユーザー(URLパラメータから解決)
+  let CURRENT_USER = null;
+  let CURRENT_USER_KEY = null;
+
+  function renderWeeklyConfig() {
+    if (typeof WEEKLY_CONFIG === 'undefined') return;
+    // URLパラメータからユーザー解決
+    resolveUserFromURL();
+    // 即時描画(WEEKLY_CONFIG由来の部分)
+    renderFocus();
+    renderTodaysNote();
+    renderWorkshopLog();
+    // ユーザーが解決できれば、スプレッドシートから取得 → KPIとコーチを描画
+    if (CURRENT_USER_KEY != null && USER_MAP[CURRENT_USER_KEY] !== undefined) {
+      renderKPILoading();
+      renderCoachLoading();
+      fetchSheetAndRender();
+    } else {
+      // URL未指定 / 不明ユーザー → 案内表示
+      renderUserRequired();
+    }
+  }
+
+  function resolveUserFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    const u = (params.get('user') || '').toLowerCase().trim();
+    CURRENT_USER_KEY = u || null;
+  }
+
+  function renderUserRequired() {
+    // KPIエリアに案内を表示
+    const c = document.getElementById('kpi-container');
+    if (c) {
+      const validKeys = Object.keys(USER_MAP).slice(0, 3).join(', ');
+      c.innerHTML = `
+        <div class="user-required">
+          <p class="user-required-title">👤 ユーザーIDが必要です</p>
+          <p class="user-required-desc">
+            URL の末尾に <strong>?user=あなたのID</strong> を追加してください。
+          </p>
+          <div class="user-required-example">
+            例:<br>
+            ?user=<strong>yamaguchi</strong><br>
+            ?user=<strong>asami</strong><br>
+            <br>
+            利用可能ID: ${Object.keys(USER_MAP).join(', ')}
+          </div>
+        </div>
+      `;
+    }
+    // コーチエリアにも控えめなメッセージ
+    const cc = document.getElementById('coach-container');
+    if (cc) {
+      cc.innerHTML = `
+        <div class="coach-box">
+          <p class="coach-eyebrow">✨ TODAY'S COACH</p>
+          <p class="coach-text" style="color: #888780;">ユーザーIDが指定されると、あなた専用のメッセージが表示されます。</p>
+        </div>
+      `;
+    }
+    // アバターは「?」
+    const av = document.getElementById('user-avatar');
+    if (av) { av.textContent = '?'; av.title = 'ユーザー未指定'; }
+  }
+
+  function renderKPILoading() {
+    const c = document.getElementById('kpi-container');
+    if (c) c.innerHTML = '<p class="panel-title">営業進捗 <span style="color: #888780; font-weight: 400; font-size: 10px;">/ 今月</span></p><div class="kpi-loading">📊 スプレッドシートから読み込み中...</div>';
+  }
+
+  function renderCoachLoading() {
+    const c = document.getElementById('coach-container');
+    if (c) c.innerHTML = '<div class="coach-box"><p class="coach-eyebrow">✨ TODAY\'S COACH</p><p class="coach-text" style="color: #888780;">あなた専用のメッセージを準備中...</p></div>';
+  }
+
+  function renderKPIError(msg) {
+    const c = document.getElementById('kpi-container');
+    if (c) c.innerHTML = `<p class="panel-title">営業進捗</p><div class="kpi-error">⚠ データ取得エラー<br><span style="font-size: 10px;">${escapeHtml(msg || '')}</span></div>`;
+  }
+
+  // ── スプレッドシートを取得 ──
+  async function fetchSheetAndRender() {
+    try {
+      const url = `https://docs.google.com/spreadsheets/d/${SHEET_CONFIG.sheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_CONFIG.sheetName)}&range=${encodeURIComponent(SHEET_CONFIG.range)}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const text = await res.text();
+      // gviz APIは google.visualization.Query.setResponse(...) でラップされたJSONを返す
+      const jsonMatch = text.match(/setResponse\(([\s\S]+)\);?\s*$/);
+      if (!jsonMatch) throw new Error('レスポンスのパースに失敗');
+      const data = JSON.parse(jsonMatch[1]);
+      const rows = (data.table && data.table.rows) || [];
+      // rows[0]はヘッダー行(A11)、rows[1]以降が個人データ(A12〜)
+      // USER_MAPのインデックスは「データ部分の0始まり」なので rows[CURRENT_USER_KEY+1]
+      const userRowIndex = USER_MAP[CURRENT_USER_KEY] + 1;
+      const userRow = rows[userRowIndex];
+      if (!userRow) throw new Error('該当ユーザーの行が見つかりません');
+      // セルからデータを抽出
+      const u = extractUserData(userRow);
+      CURRENT_USER = u;
+      // 描画
+      renderUserAvatarFromName(u.name);
+      renderKPIFromSheet(u);
+      renderCoachFromAchievement(u);
+    } catch (e) {
+      console.error('Sheet fetch error:', e);
+      renderKPIError(e.message);
+      renderCoach(); // フォールバックで WEEKLY_CONFIG のメッセージ
+    }
+  }
+
+  // 行データから個人情報を取り出す
+  function extractUserData(row) {
+    const c = (i) => {
+      const cell = row.c && row.c[i];
+      if (!cell) return null;
+      return cell.v != null ? cell.v : (cell.f != null ? cell.f : null);
+    };
+    const num = (i) => {
+      const v = c(i);
+      if (v == null || v === '') return 0;
+      const n = typeof v === 'number' ? v : parseFloat(String(v).replace(/[^\d.\-]/g, ''));
+      return isNaN(n) ? 0 : n;
+    };
+    // 列: A=0, B=1, ... S=18
+    return {
+      name:        c(0)  || '',   // A: 名前
+      budget:      num(1),         // B: 売上予算
+      remaining:   num(2),         // C: 残り
+      rate:        num(3),         // D: 達成率(0-1 or % どちらでも対応)
+      sales:       num(4),         // E: 売上
+      target:      num(9),         // J: 目標
+      salesR:      num(10),        // K: 売上(右側)
+      rateR:       num(11),        // L: 達成率(右側)
+      fullSales:   num(12),        // M: 常勤売上
+      partSales:   num(13),        // N: 非常勤売上
+      fullInq:     num(14),        // O: 常勤問合せ数
+      partInq:     num(15),        // P: 非常勤問合せ数
+      interviews:  num(16),        // Q: 面接数
+      decisions:   num(17),        // R: 決定数
+      decisionRate:num(18),        // S: 決定率
+    };
+  }
+
+  // 達成率は 0.6 のような小数か 60 のようなパーセントどちらかなので正規化
+  function normalizeRateToPercent(rate) {
+    if (rate == null || isNaN(rate)) return 0;
+    return rate <= 1 ? rate * 100 : rate;
+  }
+
+  function renderUserAvatarFromName(name) {
+    const el = document.getElementById('user-avatar');
+    if (!el) return;
+    const trimmed = (name || '').trim();
+    el.textContent = trimmed.slice(0, 1) || '?';
+    el.title = trimmed;
+  }
+
+  // KPI描画(スプレッドシートデータから)
+  function renderKPIFromSheet(u) {
+    const c = document.getElementById('kpi-container');
+    if (!c) return;
+    const ratePct = normalizeRateToPercent(u.rate);
+    const decRatePct = normalizeRateToPercent(u.decisionRate);
+    const fmt = (n) => {
+      if (n == null || isNaN(n)) return '0';
+      // 1万以上は万単位に丸める
+      return Math.round(n).toLocaleString('ja-JP');
+    };
+
+    c.innerHTML = `
+      <div class="kpi-section-header">
+        <p class="panel-title" style="margin-bottom: 0;">営業進捗 <span style="color: #888780; font-weight: 400; font-size: 10px;">/ 今月</span></p>
+        <span class="kpi-user-tag">${escapeHtml(u.name || CURRENT_USER_KEY)}</span>
+      </div>
+
+      <div class="kpi-row">
+        <div class="kpi-label-row">
+          <span class="kpi-label">売上達成率</span>
+          <span class="kpi-value"><strong>${ratePct.toFixed(1)}</strong><span class="kpi-percent">%</span></span>
+        </div>
+        <div class="kpi-bar-wrap">
+          <div class="kpi-bar warm" style="width: ${Math.min(ratePct, 100)}%;"></div>
+        </div>
+      </div>
+
+      <div class="kpi-mini-grid">
+        <div class="kpi-mini">
+          <div class="kpi-mini-label">今月売上</div>
+          <div class="kpi-mini-value">${fmt(u.sales)}<span class="unit">円</span></div>
+        </div>
+        <div class="kpi-mini">
+          <div class="kpi-mini-label">売上目標</div>
+          <div class="kpi-mini-value">${fmt(u.budget)}<span class="unit">円</span></div>
+        </div>
+        <div class="kpi-mini">
+          <div class="kpi-mini-label">面接数</div>
+          <div class="kpi-mini-value">${fmt(u.interviews)}<span class="unit">件</span></div>
+        </div>
+        <div class="kpi-mini">
+          <div class="kpi-mini-label">決定数</div>
+          <div class="kpi-mini-value">${fmt(u.decisions)}<span class="unit">件</span></div>
+        </div>
+        <div class="kpi-mini" style="grid-column: span 2;">
+          <div class="kpi-mini-label">決定率</div>
+          <div class="kpi-mini-value">${decRatePct.toFixed(1)}<span class="unit">%</span></div>
+        </div>
+      </div>
+    `;
+  }
+
+  // コーチメッセージ(達成率に応じて自動切替)
+  function renderCoachFromAchievement(u) {
+    const c = document.getElementById('coach-container');
+    if (!c) return;
+    const pct = normalizeRateToPercent(u.rate);
+    let msg;
+    if (pct < 50) {
+      msg = '目標まで折り返し前。今週の行動量を見直しましょう。商談数を増やすことが最優先です。';
+    } else if (pct < 80) {
+      msg = '順調に進んでいます。残り目標まであと少し。今週は成約確度の高い案件に集中を。';
+    } else if (pct <= 100) {
+      msg = '目標達成まであと一息! このペースを維持して最後まで駆け抜けましょう。';
+    } else {
+      msg = '目標達成おめでとうございます! 来期の仕込みを始めるタイミングです。';
+    }
+    c.innerHTML = `
+      <div class="coach-box">
+        <p class="coach-eyebrow">✨ TODAY'S COACH</p>
+        <p class="coach-text">${escapeHtml(msg)}</p>
+      </div>
+    `;
+  }
+
+  // === 旧:WEEKLY_CONFIG由来のユーザーアバター(URLなし時のフォールバック用) ===
+  // 既存の renderUserAvatar も残しておく(URL指定なしでも動く保険)
+
+  // ヘッダーアバター(イニシャル2文字)
+  function renderUserAvatar() {
+    const el = document.getElementById('user-avatar');
+    if (!el) return;
+    const name = (WEEKLY_CONFIG.userName || '').trim();
+    // 苗字の頭文字 + 名前の頭文字 で2文字、なければ最初の2文字
+    const parts = name.split(/\s+/);
+    let initials = '';
+    if (parts.length >= 2) {
+      initials = (parts[0][0] || '') + (parts[1][0] || '');
+    } else {
+      initials = name.slice(0, 2);
+    }
+    el.textContent = initials.toUpperCase() || 'YK';
+    el.title = name;
+  }
+
+  // ① KPI
+  function renderKPI() {
+    const c = document.getElementById('kpi-container');
+    if (!c) return;
+    const k = WEEKLY_CONFIG.kpi || {};
+    const pct = (cur, tar) => tar > 0 ? Math.round((cur / tar) * 100) : 0;
+    const talks = k.talks || { current: 0, target: 0 };
+    const contracts = k.contracts || { current: 0, target: 0 };
+    const sales = k.sales || { current: 0, target: 0 };
+    const trendArrow = k.momPositive ? '↗' : '↘';
+    const trendClass = k.momPositive ? 'positive' : 'negative';
+    const trendText = k.momPositive ? 'いい流れです' : '巻き返しのチャンス';
+
+    c.innerHTML = `
+      <p class="panel-title">営業進捗 <span style="color: #888780; font-weight: 400; font-size: 10px;">/ 今月</span></p>
+
+      <div class="kpi-row">
+        <div class="kpi-label-row">
+          <span class="kpi-label">商談数</span>
+          <span class="kpi-value"><strong>${talks.current}</strong> <span class="target">/ ${talks.target}</span><span class="kpi-percent">${pct(talks.current, talks.target)}%</span></span>
+        </div>
+        <div class="kpi-bar-wrap"><div class="kpi-bar amber" style="width: ${Math.min(pct(talks.current, talks.target), 100)}%;"></div></div>
+      </div>
+
+      <div class="kpi-row">
+        <div class="kpi-label-row">
+          <span class="kpi-label">成約数</span>
+          <span class="kpi-value"><strong>${contracts.current}</strong> <span class="target">/ ${contracts.target}</span><span class="kpi-percent">${pct(contracts.current, contracts.target)}%</span></span>
+        </div>
+        <div class="kpi-bar-wrap"><div class="kpi-bar coral" style="width: ${Math.min(pct(contracts.current, contracts.target), 100)}%;"></div></div>
+      </div>
+
+      <div class="kpi-row">
+        <div class="kpi-label-row">
+          <span class="kpi-label">売上</span>
+          <span class="kpi-value"><strong>${sales.current}</strong><span class="target"> / ${sales.target} 万円</span><span class="kpi-percent">${pct(sales.current, sales.target)}%</span></span>
+        </div>
+        <div class="kpi-bar-wrap"><div class="kpi-bar warm" style="width: ${Math.min(pct(sales.current, sales.target), 100)}%;"></div></div>
+      </div>
+
+      <div class="kpi-trend ${trendClass}">
+        <span class="kpi-trend-icon">${trendArrow} ${escapeHtml(k.momChange || '')}</span>
+        <span class="kpi-trend-text">前月比 / ${trendText}</span>
+      </div>
+    `;
+  }
+
+  // ② AIコーチ
+  function renderCoach() {
+    const c = document.getElementById('coach-container');
+    if (!c) return;
+    c.innerHTML = `
+      <div class="coach-box">
+        <p class="coach-eyebrow">✨ TODAY'S COACH</p>
+        <p class="coach-text">${escapeHtml(WEEKLY_CONFIG.coachMessage || '')}</p>
+      </div>
+    `;
+  }
+
+  // ③ 今週のフォーカス
+  function renderFocus() {
+    const c = document.getElementById('focus-container');
+    if (!c) return;
+    const items = WEEKLY_CONFIG.weeklyFocus || [];
+    c.innerHTML = `
+      <p class="panel-title">今週のフォーカス <span style="color: #888780; font-weight: 400; font-size: 10px;">/ ${items.length} 件</span></p>
+      <div class="focus-list">
+        ${items.map(t => `
+          <div class="focus-item" onclick="toggleFocus(this)">
+            <div class="focus-check"></div>
+            <span class="focus-text">${escapeHtml(t)}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  // ④ TODAY'S NOTE
+  function renderTodaysNote() {
+    const c = document.getElementById('note-container');
+    if (!c) return;
+    c.innerHTML = `
+      <p class="panel-eyebrow">TODAY'S NOTE</p>
+      <p class="note-box">${escapeHtml(WEEKLY_CONFIG.todaysNote || '')}</p>
+    `;
+  }
+
+  // ⑤ 工房ログ
+  function renderWorkshopLog() {
+    const c = document.getElementById('log-container');
+    if (!c) return;
+    const logs = WEEKLY_CONFIG.workshopLog || [];
+    // 順番に色を割り当て(amber → green → purple → amber...)
+    const colors = ['amber', 'green', 'purple'];
+    c.innerHTML = `
+      <p class="panel-title">工房ログ</p>
+      <div class="log-list" id="log-list">
+        ${logs.map((l, i) => `
+          <div class="log-item">
+            <div class="log-dot ${colors[i % colors.length]}"></div>
+            <div>
+              <div class="log-time">${escapeHtml(l.time || '')}</div>
+              <div class="log-text">${escapeHtml(l.text || '')}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  // 前月比のスタイル(マイナス時は赤系)
+  // CSSでクラス分岐を追加するためのstyleを動的注入
+  (function injectKPITrendStyle() {
+    const s = document.createElement('style');
+    s.textContent = `
+      .kpi-trend.negative {
+        background: #FCEBEB;
+      }
+      .kpi-trend.negative .kpi-trend-icon { color: #A32D2D; }
+      .kpi-trend.negative .kpi-trend-text { color: #4A1B0C; }
+    `;
+    document.head.appendChild(s);
+  })();
+
+  // ════════════════════════════════════════════════════════════════
+
   // === 今週のフォーカス チェックトグル ===
   function toggleFocus(item) {
     const check = item.querySelector('.focus-check');
@@ -1184,6 +1657,7 @@
   }
 
   // 初期化
+  renderWeeklyConfig();
   updateMailBadge();
   renderMail();
   updateResumeBadge();
