@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>CONNECT Studio - v8 / 6カレンダー統合</title>
+<title>CONNECT Studio - v9 / 営業ダッシュボード追加</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -245,6 +245,119 @@
   .log-dot.purple { background: #534AB7; }
   .log-time { font-size: 10px; color: #888780; }
   .log-text { font-size: 11px; line-height: 1.45; }
+
+  /* === 右パネル拡張(スクロール対応 + 新セクション) === */
+  .sidebar-right {
+    overflow-y: auto;
+    max-height: 620px;  /* body-gridのmin-heightと同じ */
+  }
+  .sidebar-right::-webkit-scrollbar { width: 6px; }
+  .sidebar-right::-webkit-scrollbar-track { background: transparent; }
+  .sidebar-right::-webkit-scrollbar-thumb { background: #D3D1C7; border-radius: 3px; }
+  .sidebar-right::-webkit-scrollbar-thumb:hover { background: #B4B2A9; }
+
+  /* === KPIダッシュボード === */
+  .kpi-section { /* セクション枠 */ }
+  .kpi-row {
+    margin-bottom: 12px;
+  }
+  .kpi-row:last-child { margin-bottom: 0; }
+  .kpi-label-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 4px;
+  }
+  .kpi-label {
+    font-size: 11px; color: #5F5E5A;
+  }
+  .kpi-value {
+    font-size: 11px; font-variant-numeric: tabular-nums;
+  }
+  .kpi-value strong {
+    font-weight: 500; color: #2C2C2A;
+  }
+  .kpi-value .target { color: #888780; }
+  .kpi-bar-wrap {
+    height: 5px; background: #F1EFE8;
+    border-radius: 3px; overflow: hidden;
+  }
+  .kpi-bar {
+    height: 100%; border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+  .kpi-bar.amber { background: #BA7517; }
+  .kpi-bar.coral { background: #F0997B; }
+  .kpi-bar.warm { background: linear-gradient(90deg, #FAC775 0%, #F0997B 100%); }
+  .kpi-percent {
+    font-size: 10px; color: #888780;
+    margin-left: 6px;
+  }
+  .kpi-trend {
+    margin-top: 12px;
+    padding: 8px 10px;
+    background: #EAF3DE;
+    border-radius: 6px;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px;
+  }
+  .kpi-trend-icon { color: #3B6D11; font-weight: 500; }
+  .kpi-trend-text { color: #173404; }
+
+  /* === AIコーチ === */
+  .coach-box {
+    padding: 12px 14px;
+    background: linear-gradient(135deg, #FFFEFA 0%, #FAEEDA 100%);
+    border: 0.5px solid #EF9F27;
+    border-radius: 8px;
+    position: relative;
+  }
+  .coach-eyebrow {
+    font-size: 10px; color: #854F0B;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .coach-text {
+    font-size: 11px; line-height: 1.7;
+    color: #2C2C2A;
+  }
+
+  /* === 今週のフォーカス === */
+  .focus-list { display: flex; flex-direction: column; gap: 8px; }
+  .focus-item {
+    display: flex; gap: 8px; align-items: flex-start;
+    font-size: 11px; line-height: 1.5;
+  }
+  .focus-check {
+    width: 14px; height: 14px;
+    border: 1px solid #B4B2A9;
+    border-radius: 3px; flex-shrink: 0;
+    margin-top: 1px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .focus-check:hover { border-color: #BA7517; }
+  .focus-check.checked {
+    background: #BA7517;
+    border-color: #BA7517;
+    position: relative;
+  }
+  .focus-check.checked::after {
+    content: '✓';
+    position: absolute;
+    color: white;
+    font-size: 10px;
+    top: -2px; left: 2px;
+    font-weight: 700;
+  }
+  .focus-text { flex: 1; }
+  .focus-item.done .focus-text {
+    text-decoration: line-through;
+    color: #888780;
+  }
+  .focus-meta {
+    font-size: 10px; color: #888780;
+    margin-left: 4px;
+  }
 
   /* === カレンダー埋め込み === */
   .calendar-area {
@@ -650,6 +763,75 @@
 
     <!-- 右サイド -->
     <div class="sidebar-right">
+
+      <!-- ① 営業進捗(KPIダッシュボード) -->
+      <div class="kpi-section">
+        <p class="panel-title">営業進捗 <span style="color: #888780; font-weight: 400; font-size: 10px;">/ 今月</span></p>
+
+        <div class="kpi-row">
+          <div class="kpi-label-row">
+            <span class="kpi-label">商談数</span>
+            <span class="kpi-value"><strong>12</strong> <span class="target">/ 20</span><span class="kpi-percent">60%</span></span>
+          </div>
+          <div class="kpi-bar-wrap">
+            <div class="kpi-bar amber" style="width: 60%;"></div>
+          </div>
+        </div>
+
+        <div class="kpi-row">
+          <div class="kpi-label-row">
+            <span class="kpi-label">成約数</span>
+            <span class="kpi-value"><strong>3</strong> <span class="target">/ 5</span><span class="kpi-percent">60%</span></span>
+          </div>
+          <div class="kpi-bar-wrap">
+            <div class="kpi-bar coral" style="width: 60%;"></div>
+          </div>
+        </div>
+
+        <div class="kpi-row">
+          <div class="kpi-label-row">
+            <span class="kpi-label">売上</span>
+            <span class="kpi-value"><strong>180</strong><span class="target"> / 300 万円</span><span class="kpi-percent">60%</span></span>
+          </div>
+          <div class="kpi-bar-wrap">
+            <div class="kpi-bar warm" style="width: 60%;"></div>
+          </div>
+        </div>
+
+        <div class="kpi-trend">
+          <span class="kpi-trend-icon">↗ +8%</span>
+          <span class="kpi-trend-text">前月比 / いい流れです</span>
+        </div>
+      </div>
+
+      <!-- ② 今日の行動アドバイス(AIコーチ) -->
+      <div>
+        <div class="coach-box">
+          <p class="coach-eyebrow">✨ TODAY'S COACH</p>
+          <p class="coach-text">今日は <strong>13:30 に誠さんとの 1on1</strong> があります。先週の進捗と今週の優先事項を 3 点まとめておくと、会議がより充実します。</p>
+        </div>
+      </div>
+
+      <!-- ③ 今週のフォーカス -->
+      <div>
+        <p class="panel-title">今週のフォーカス <span style="color: #888780; font-weight: 400; font-size: 10px;">/ 3 件</span></p>
+        <div class="focus-list">
+          <div class="focus-item" onclick="toggleFocus(this)">
+            <div class="focus-check"></div>
+            <span class="focus-text">クライアントA社のフォローアップ連絡</span>
+          </div>
+          <div class="focus-item" onclick="toggleFocus(this)">
+            <div class="focus-check"></div>
+            <span class="focus-text">新規候補者 3 名のスカウト送信</span>
+          </div>
+          <div class="focus-item" onclick="toggleFocus(this)">
+            <div class="focus-check"></div>
+            <span class="focus-text">月次レポートの作成 <span class="focus-meta">(金曜締め)</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 既存:TODAY'S NOTE -->
       <div>
         <p class="panel-eyebrow">TODAY'S NOTE</p>
         <p class="note-box">誠さんが履歴書ツール v0.8.2 をデプロイ。精度が一歩前進。</p>
@@ -688,7 +870,7 @@
 
   <div class="footer">
     <span class="footer-text">Built by us, for us. — CONNECT Studio</span>
-    <span class="footer-note">v8 / 6カレンダー統合表示</span>
+    <span class="footer-note">v9 / KPI・AIコーチ・週次フォーカス追加</span>
   </div>
 
 </div>
@@ -992,6 +1174,13 @@
   // === Util ===
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // === 今週のフォーカス チェックトグル ===
+  function toggleFocus(item) {
+    const check = item.querySelector('.focus-check');
+    check.classList.toggle('checked');
+    item.classList.toggle('done');
   }
 
   // 初期化
