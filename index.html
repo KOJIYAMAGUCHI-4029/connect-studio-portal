@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>CONNECT Studio - v5 / Slack & Ovice統合</title>
+<title>CONNECT Studio - v8 / 6カレンダー統合</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -246,6 +246,52 @@
   .log-time { font-size: 10px; color: #888780; }
   .log-text { font-size: 11px; line-height: 1.45; }
 
+  /* === カレンダー埋め込み === */
+  .calendar-area {
+    height: 100%;
+    padding: 16px 20px;
+    display: flex; flex-direction: column;
+  }
+  .calendar-frame-wrap {
+    flex: 1; min-height: 0;
+    border: 0.5px solid #D3D1C7;
+    border-radius: 8px; overflow: hidden;
+    background: #FFFEFA;
+  }
+  .calendar-frame {
+    width: 100%; height: 100%;
+    border: none; display: block;
+  }
+  .calendar-placeholder {
+    height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 32px 24px;
+    text-align: center;
+    background: #FFFEFA;
+  }
+  .calendar-placeholder-title {
+    font-size: 16px; font-weight: 500;
+    margin-bottom: 8px; color: #2C2C2A;
+  }
+  .calendar-placeholder-desc {
+    font-size: 12px; color: #5F5E5A;
+    line-height: 1.7; max-width: 460px;
+    margin-bottom: 18px;
+  }
+  .calendar-steps {
+    text-align: left; max-width: 480px;
+    background: #FAF7F2;
+    border: 0.5px dashed #B4B2A9;
+    border-radius: 8px; padding: 14px 18px;
+    font-size: 12px; line-height: 1.8; color: #2C2C2A;
+  }
+  .calendar-steps strong { color: #2C2C2A; }
+  .calendar-steps code {
+    background: #F1EFE8; padding: 1px 5px;
+    border-radius: 3px; font-size: 11px;
+  }
+
   /* === Launch画面(Slack / Ovice) === */
   .launch-area {
     height: 100%;
@@ -396,34 +442,34 @@
         <span class="nav-label">Ovice</span>
       </div>
 
-      <div class="nav-item">
-        <div class="nav-icon" style="background: #F1EFE8;">
+      <div class="nav-item" data-pane="gmail" onclick="switchPane('gmail')">
+        <div class="nav-icon" style="background: #FCEBEB;">
           <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
-            <rect x="1.5" y="3" width="11" height="8" rx="1" stroke="#5F5E5A" stroke-width="1.3"/>
-            <path d="M1.5 4l5.5 4 5.5-4" stroke="#5F5E5A" stroke-width="1.3"/>
+            <rect x="1.5" y="3" width="11" height="8" rx="1" stroke="#A32D2D" stroke-width="1.3"/>
+            <path d="M1.5 4l5.5 4 5.5-4" stroke="#A32D2D" stroke-width="1.3"/>
           </svg>
         </div>
-        <span class="nav-label muted">Gmail</span>
+        <span class="nav-label">Gmail</span>
       </div>
 
-      <div class="nav-item">
-        <div class="nav-icon" style="background: #F1EFE8;">
+      <div class="nav-item" data-pane="gcal" onclick="switchPane('gcal')">
+        <div class="nav-icon" style="background: #FAEEDA;">
           <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
-            <rect x="2" y="3" width="10" height="9" rx="1" stroke="#5F5E5A" stroke-width="1.3"/>
-            <path d="M2 5.5h10" stroke="#5F5E5A" stroke-width="1.3"/>
-            <path d="M5 2v2M9 2v2" stroke="#5F5E5A" stroke-width="1.3" stroke-linecap="round"/>
+            <rect x="2" y="3" width="10" height="9" rx="1" stroke="#854F0B" stroke-width="1.3"/>
+            <path d="M2 5.5h10" stroke="#854F0B" stroke-width="1.3"/>
+            <path d="M5 2v2M9 2v2" stroke="#854F0B" stroke-width="1.3" stroke-linecap="round"/>
           </svg>
         </div>
-        <span class="nav-label muted">カレンダー</span>
+        <span class="nav-label">カレンダー</span>
       </div>
 
-      <div class="nav-item">
-        <div class="nav-icon" style="background: #F1EFE8;">
+      <div class="nav-item" data-pane="gdrive" onclick="switchPane('gdrive')">
+        <div class="nav-icon" style="background: #EAF3DE;">
           <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
-            <path d="M5 1.5l-3 5.5 2.5 4h6l2.5-4-3-5.5H5z" stroke="#5F5E5A" stroke-width="1.3" stroke-linejoin="round"/>
+            <path d="M5 1.5l-3 5.5 2.5 4h6l2.5-4-3-5.5H5z" stroke="#3B6D11" stroke-width="1.3" stroke-linejoin="round"/>
           </svg>
         </div>
-        <span class="nav-label muted">Drive</span>
+        <span class="nav-label">Drive</span>
       </div>
     </div>
 
@@ -544,6 +590,62 @@
         </div>
       </div>
 
+      <!-- Gmail -->
+      <div class="pane" id="pane-gmail">
+        <div class="launch-area">
+          <div class="launch-icon-wrap" style="background: #FCEBEB;">
+            <svg width="36" height="36" viewBox="0 0 18 18" fill="none">
+              <rect x="2" y="4" width="14" height="10" rx="1.5" stroke="#A32D2D" stroke-width="1.5"/>
+              <path d="M2 5l7 5 7-5" stroke="#A32D2D" stroke-width="1.5"/>
+            </svg>
+          </div>
+          <p class="launch-title">Gmail</p>
+          <p class="launch-desc">個人メール。<br>新しいタブで開きます。</p>
+          <a href="https://mail.google.com" target="_blank" rel="noopener" class="launch-button">
+            Gmail を開く ↗
+          </a>
+          <p class="launch-note">※ Gmailはセキュリティ上、ポータル内に直接埋め込めない仕様です</p>
+          <div class="launch-meta">
+            <strong>将来的に置き換えるなら:</strong><br>
+            社内メールは CONNECT Mail へ移行予定。個人メール用途として Gmail は継続使用の見込み。
+          </div>
+        </div>
+      </div>
+
+      <!-- Google カレンダー(埋め込み or プレースホルダー) -->
+      <div class="pane" id="pane-gcal">
+        <div class="calendar-area">
+          <div class="calendar-frame-wrap">
+            <iframe class="calendar-frame"
+              src="https://calendar.google.com/calendar/embed?src=t54og1i2tbdrhg0pj0a0ngv4fg%40group.calendar.google.com&src=gckj4029%40gmail.com&src=pvob0antca06ibjnnhq1jv83qg%40group.calendar.google.com&src=jv1cl2mtvduclk9uti7hoj4dc8%40group.calendar.google.com&src=vnh03g7usf9ems18h7qampaeis%40group.calendar.google.com&src=72f9j639o852fkth6tqqhfeg20%40group.calendar.google.com&ctz=Asia%2FTokyo"
+              frameborder="0" scrolling="no"></iframe>
+          </div>
+        </div>
+      </div>
+
+      <!-- Google Drive -->
+      <div class="pane" id="pane-gdrive">
+        <div class="launch-area">
+          <div class="launch-icon-wrap" style="background: #EAF3DE;">
+            <svg width="36" height="36" viewBox="0 0 18 18" fill="none">
+              <path d="M6 2l-4 7 3 5h8l3-5-4-7H6z" stroke="#3B6D11" stroke-width="1.5" stroke-linejoin="round"/>
+              <path d="M6 2l3 7M12 2l-3 7M5 14l4-5M13 14l-4-5" stroke="#3B6D11" stroke-width="1.5"/>
+            </svg>
+          </div>
+          <p class="launch-title">Google Drive</p>
+          <p class="launch-desc">ファイル共有・保管。<br>新しいタブで開きます。</p>
+          <a href="https://drive.google.com" target="_blank" rel="noopener" class="launch-button">
+            Drive を開く ↗
+          </a>
+          <p class="launch-note">※ Driveのファイル一覧画面は埋め込み不可ですが、個別ファイルなら埋め込み可能です</p>
+          <div class="launch-meta">
+            <strong>将来的な拡張案:</strong><br>
+            よく見るスプレッドシートや経営ダッシュボードを、ポータル内に常時埋め込み表示することも可能。<br>
+            人材データベースが完成すれば、求職者ファイルは自社DB側に統合予定。
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <!-- 右サイド -->
@@ -586,7 +688,7 @@
 
   <div class="footer">
     <span class="footer-text">Built by us, for us. — CONNECT Studio</span>
-    <span class="footer-note">v5 / Slack & Ovice 追加</span>
+    <span class="footer-note">v8 / 6カレンダー統合表示</span>
   </div>
 
 </div>
@@ -664,6 +766,21 @@
     } else if (name === 'ovice') {
       bcTitle.textContent = 'Ovice';
       bcPath.textContent = '/ バーチャルオフィス';
+      bcBadge.textContent = 'borrowed';
+      bcBadge.className = 'building-badge badge-borrowed';
+    } else if (name === 'gmail') {
+      bcTitle.textContent = 'Gmail';
+      bcPath.textContent = '/ 個人メール';
+      bcBadge.textContent = 'borrowed';
+      bcBadge.className = 'building-badge badge-borrowed';
+    } else if (name === 'gcal') {
+      bcTitle.textContent = 'Google カレンダー';
+      bcPath.textContent = '/ スケジュール';
+      bcBadge.textContent = 'borrowed';
+      bcBadge.className = 'building-badge badge-borrowed';
+    } else if (name === 'gdrive') {
+      bcTitle.textContent = 'Google Drive';
+      bcPath.textContent = '/ ファイル共有';
       bcBadge.textContent = 'borrowed';
       bcBadge.className = 'building-badge badge-borrowed';
     }
