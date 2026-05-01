@@ -27,7 +27,7 @@ const WEEKLY_CONFIG = {
   // 👤 今週の担当者名(ヘッダーに表示)
   userName: "山口 孝二",
 
-  // 📊 営業進捗(今月の数字)
+  // 📊 営業進捗(今期の数字)
   kpi: {
     talks:     { current: 12,  target: 20  },   // 商談数
     contracts: { current: 3,   target: 5   },   // 成約数
@@ -1411,7 +1411,7 @@ const MOTIVATION_MESSAGES = [
       userName = CURRENT_USER.name || userName;
       achievementRate = normalizeRateToPercent(CURRENT_USER.rate).toFixed(1);
     }
-    return `あなたはCONNECT Studioの専属AIアシスタントです。ユーザーの営業活動をサポートしてください。現在のユーザー: ${userName}、今月の売上達成率: ${achievementRate}%`;
+    return `あなたはCONNECT Studioの専属AIアシスタントです。ユーザーの営業活動をサポートしてください。現在のユーザー: ${userName}、今期の売上達成率: ${achievementRate}%`;
   }
 
   // ──────── Claude API呼び出し ────────
@@ -1907,7 +1907,7 @@ const MOTIVATION_MESSAGES = [
 
   function renderKPILoading() {
     const c = document.getElementById('kpi-container');
-    if (c) c.innerHTML = '<p class="panel-title">営業進捗 <span style="color: #888780; font-weight: 400; font-size: 10px;">/ 今月</span></p><div class="kpi-loading">📊 スプレッドシートから読み込み中...</div>';
+    if (c) c.innerHTML = '<p class="panel-title">営業進捗 <span style="color: #888780; font-weight: 400; font-size: 10px;">/ 今期</span></p><div class="kpi-loading">📊 スプレッドシートから読み込み中...</div>';
   }
 
   function renderCoachLoading() {
@@ -2012,7 +2012,7 @@ const MOTIVATION_MESSAGES = [
 
     c.innerHTML = `
       <div class="kpi-section-header">
-        <p class="panel-title" style="margin-bottom: 0;">営業進捗 <span style="color: #888780; font-weight: 400; font-size: 10px;">/ 今月</span></p>
+        <p class="panel-title" style="margin-bottom: 0;">営業進捗 <span style="color: #888780; font-weight: 400; font-size: 10px;">/ 今期</span></p>
         <span class="kpi-user-tag">${escapeHtml(u.name || CURRENT_USER_KEY)}</span>
       </div>
 
@@ -2028,7 +2028,7 @@ const MOTIVATION_MESSAGES = [
 
       <div class="kpi-mini-grid">
         <div class="kpi-mini">
-          <div class="kpi-mini-label">今月売上</div>
+          <div class="kpi-mini-label">今期売上</div>
           <div class="kpi-mini-value">${fmt(u.sales)}<span class="unit">円</span></div>
         </div>
         <div class="kpi-mini">
@@ -2108,7 +2108,7 @@ const MOTIVATION_MESSAGES = [
     const trendText = k.momPositive ? 'いい流れです' : '巻き返しのチャンス';
 
     c.innerHTML = `
-      <p class="panel-title">営業進捗 <span style="color: #888780; font-weight: 400; font-size: 10px;">/ 今月</span></p>
+      <p class="panel-title">営業進捗 <span style="color: #888780; font-weight: 400; font-size: 10px;">/ 今期</span></p>
 
       <div class="kpi-row">
         <div class="kpi-label-row">
@@ -2254,7 +2254,7 @@ const MOTIVATION_MESSAGES = [
     topDecisions.forEach(u => {
       items.push({
         color: 'green',
-        text: `⭐ ${u.name}さん、今月決定 ${u.decisions} 件`,
+        text: `⭐ ${u.name}さん、今期決定 ${u.decisions} 件`,
       });
     });
 
@@ -2266,7 +2266,7 @@ const MOTIVATION_MESSAGES = [
     topInterviews.forEach(u => {
       items.push({
         color: 'purple',
-        text: `🎯 ${u.name}さん、今月面接 ${u.interviews} 件`,
+        text: `🎯 ${u.name}さん、今期面接 ${u.interviews} 件`,
       });
     });
 
