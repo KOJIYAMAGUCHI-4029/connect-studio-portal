@@ -810,6 +810,14 @@ const MOTIVATION_MESSAGES = [
     padding: 40px 24px;
     text-align: center;
   }
+  .launch-area-drive {
+    height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-start;
+    padding: 40px 24px;
+    text-align: center;
+    overflow-y: auto;
+  }
   .launch-icon-wrap {
     width: 72px; height: 72px; border-radius: 16px;
     display: flex; align-items: center; justify-content: center;
@@ -858,6 +866,7 @@ const MOTIVATION_MESSAGES = [
   .caption { display: none; }
   .caption strong { color: #2C2C2A; }
 </style>
+<script src="/connect-studio/auto-user-redirect.js"></script>
 </head>
 <body>
 
@@ -1040,25 +1049,12 @@ const MOTIVATION_MESSAGES = [
 
       <!-- 履歴書変換 -->
       <div class="pane" id="pane-resume">
-        <div class="resume-area">
-          <p class="resume-section-title">履歴書をアップロード</p>
-          <div class="upload-zone">
-            <div class="upload-icon">
-              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                <path d="M16 22V8M16 8L10 14M16 8l6 6" stroke="#888780" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M6 22v3a2 2 0 002 2h16a2 2 0 002-2v-3" stroke="#888780" stroke-width="1.8" stroke-linecap="round"/>
-              </svg>
-            </div>
-            <p class="upload-text">ここに履歴書をドラッグ&ドロップ</p>
-            <p class="upload-hint">PDF, Word, 画像ファイルに対応</p>
-            <button class="demo-btn" onclick="startDemoConversion()">▶ デモ:3件のサンプル履歴書を変換する</button>
-          </div>
-
-          <p class="resume-section-title">処理中・完了したファイル <span style="color: #888780; font-weight: 400;" id="file-count">(0件)</span></p>
-          <div class="file-list" id="file-list">
-            <p style="font-size: 12px; color: #888780; padding: 16px 0; text-align: center;">まだファイルはありません。上の「デモ」ボタンを押してみてください。</p>
-          </div>
-        </div>
+        <iframe
+          src="https://connect-resume-tool.onrender.com/"
+          style="width: 100%; height: 100%; border: none; display: block;"
+          title="CONNECT 履歴書変換ツール"
+          sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-downloads">
+        </iframe>
       </div>
 
       <!-- Slack -->
@@ -1140,26 +1136,40 @@ const MOTIVATION_MESSAGES = [
         </div>
       </div>
 
-      <!-- Google Drive -->
+      <!-- CONNECT Drive (S3 backed) -->
       <div class="pane" id="pane-gdrive">
-        <div class="launch-area">
+        <div class="launch-area-drive">
           <div class="launch-icon-wrap" style="background: #EAF3DE;">
             <svg width="36" height="36" viewBox="0 0 18 18" fill="none">
               <path d="M6 2l-4 7 3 5h8l3-5-4-7H6z" stroke="#3B6D11" stroke-width="1.5" stroke-linejoin="round"/>
               <path d="M6 2l3 7M12 2l-3 7M5 14l4-5M13 14l-4-5" stroke="#3B6D11" stroke-width="1.5"/>
             </svg>
           </div>
-          <p class="launch-title">Google Drive</p>
-          <p class="launch-desc">ファイル共有・保管。<br>新しいタブで開きます。</p>
-          <a href="https://drive.google.com" target="_blank" rel="noopener" class="launch-button">
-            Drive を開く ↗
+          <p class="launch-title">CONNECT Drive</p>
+          <p class="launch-desc">社内専用のファイル共有・保管。<br>AWS S3 で安全に管理。</p>
+          <a href="/connect-studio/drive.html" target="_blank" rel="noopener" class="launch-button">
+            ファイル一覧を開く ↗
           </a>
-          <p class="launch-note">※ Driveのファイル一覧画面は埋め込み不可ですが、個別ファイルなら埋め込み可能です</p>
-          <div class="launch-meta">
-            <strong>将来的な拡張案:</strong><br>
-            よく見るスプレッドシートや経営ダッシュボードを、ポータル内に常時埋め込み表示することも可能。<br>
-            人材データベースが完成すれば、求職者ファイルは自社DB側に統合予定。
+          <!-- S3ファイル管理機能 -->
+          <div style="margin-top: 28px; border-top: 1px solid #f0eeea; padding-top: 24px; text-align: left;">
+            <p class="resume-section-title">社内ファイル管理 <span style="color: #888780; font-weight: 400;" id="s3-file-count">(0件)</span></p>
+
+            <div class="upload-zone" id="s3-upload-zone" style="margin-bottom: 20px;">
+              <div class="upload-icon">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                  <path d="M16 22V8M16 8L10 14M16 8l6 6" stroke="#888780" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M6 22v3a2 2 0 002 2h16a2 2 0 002-2v-3" stroke="#888780" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <p class="upload-text">ファイルをドラッグ&ドロップ または クリックして選択</p>
+              <p class="upload-hint">AWS S3 に安全に保存(容量無制限・自動暗号化・社内のみアクセス可)</p>
+            </div>
+
+            <div class="file-list" id="s3-file-list">
+              <p style="font-size: 12px; color: #888780; padding: 16px 0; text-align: center;">まだファイルはありません</p>
+            </div>
           </div>
+
         </div>
       </div>
 
@@ -1281,7 +1291,7 @@ const MOTIVATION_MESSAGES = [
       bcBadge.textContent = 'borrowed';
       bcBadge.className = 'building-badge badge-borrowed';
     } else if (name === 'gdrive') {
-      bcTitle.textContent = 'Google Drive';
+      bcTitle.textContent = 'CONNECT Drive';
       bcPath.textContent = '/ ファイル共有';
       bcBadge.textContent = 'borrowed';
       bcBadge.className = 'building-badge badge-borrowed';
@@ -2448,5 +2458,9 @@ const MOTIVATION_MESSAGES = [
   </div>
 </div>
 
+<script src="/connect-studio/team-activity-loader.js"></script>
+<script src="/connect-studio/makoto-overlay.js"></script>
+
+<script src="/connect-studio/file-management.js"></script>
 </body>
 </html>
