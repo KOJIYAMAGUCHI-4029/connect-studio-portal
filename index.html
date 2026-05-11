@@ -1049,12 +1049,25 @@ const MOTIVATION_MESSAGES = [
 
       <!-- 履歴書変換 -->
       <div class="pane" id="pane-resume">
-        <iframe
-          src="https://connect-resume-tool.onrender.com/"
-          style="width: 100%; height: 100%; border: none; display: block;"
-          title="CONNECT 履歴書変換ツール"
-          sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-downloads">
-        </iframe>
+        <div class="resume-area">
+          <p class="resume-section-title">履歴書をアップロード</p>
+          <div class="upload-zone" id="resume-upload-zone">
+            <div class="upload-icon">
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                <path d="M16 22V8M16 8L10 14M16 8l6 6" stroke="#888780" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M6 22v3a2 2 0 002 2h16a2 2 0 002-2v-3" stroke="#888780" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <p class="upload-text">ここに履歴書をドラッグ&ドロップ または クリックして選択</p>
+            <p class="upload-hint">PDF、Word、画像(JPG/PNG/HEIC)に対応</p>
+          </div>
+          <input type="file" id="resume-file-input" style="display:none" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.heic,.webp">
+
+          <p class="resume-section-title">処理中・完了したファイル <span style="color: #888780; font-weight: 400;" id="resume-file-count">(0件)</span></p>
+          <div class="file-list" id="resume-file-list">
+            <p style="font-size: 12px; color: #888780; padding: 16px 0; text-align: center;">まだファイルはありません。上のエリアから履歴書をアップロードしてください。</p>
+          </div>
+        </div>
       </div>
 
       <!-- Slack -->
@@ -2462,5 +2475,6 @@ const MOTIVATION_MESSAGES = [
 <script src="/connect-studio/makoto-overlay.js"></script>
 
 <script src="/connect-studio/file-management.js"></script>
+<script src="/connect-studio/resume-management.js"></script>
 </body>
 </html>
