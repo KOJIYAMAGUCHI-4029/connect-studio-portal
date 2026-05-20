@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>面接予定ポータル | CONNECT Studio</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+  background: #f5f5f7;
+  color: #1d1d1f;
+  padding: 24px 16px;
+  line-height: 1.6;
+}
+.container { max-width: 800px; margin: 0 auto; }
+header { margin-bottom: 24px; }
+.back-link {
+  display: inline-block;
+  font-size: 13px;
+  color: #0066cc;
+  text-decoration: none;
+  margin-bottom: 8px;
+}
+.back-link:hover { text-decoration: underline; }
+h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+.subtitle { font-size: 13px; color: #6e6e73; }
+.controls {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+.row:last-child { margin-bottom: 0; }
+label { font-size: 13px; color: #6e6e73; font-weight: 500; }
+select, button {
+  font-size: 14px;
+  padding: 6px 12px;
+  border: 1px solid #d2d2d7;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+}
+button:hover { background: #f5f5f7; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip {
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid #d2d2d7;
+  background: white;
+  cursor: pointer;
+  user-select: none;
+}
+.chip.active { background: #1d1d1f; color: white; border-color: #1d1d1f; }
+.chip.web.active { background: #0066cc; border-color: #0066cc; }
+.chip.taimen.active { background: #d6541a; border-color: #d6541a; }
+.events { display: flex; flex-direction: column; gap: 8px; }
+.event {
+  background: white;
+  border-radius: 10px;
+  padding: 12px 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  border-left: 4px solid #b0b0b5;
+}
+.event.web { border-left-color: #0066cc; }
+.event.taimen { border-left-color: #d6541a; }
+.event-row { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
+.event-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.event-meta { font-size: 12px; color: #6e6e73; }
+.badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.badge.web { background: #e6f2fb; color: #0066cc; }
+.badge.taimen { background: #fbeae0; color: #a04010; }
+.status { text-align: center; padding: 40px 16px; color: #6e6e73; font-size: 14px; }
+.status.error { color: #d32f2f; }
+.day-header {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6e6e73;
+  margin: 16px 0 6px;
+  padding-left: 4px;
+}
+.day-header:first-child { margin-top: 0; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <a href="index.html" class="back-link">← CONNECT Studio トップへ</a>
+    <h1>面接予定ポータル</h1>
+    <div class="subtitle">CONNECT カレンダー連携 / 月別・タイプ別表示</div>
+  </header>
+
+  <div class="controls">
+    <div class="row">
+      <label>表示月:</label>
+      <select id="month-select"></select>
+      <button id="reload">↻ 更新</button>
+    </div>
+    <div class="row">
+      <div class="chips">
+        <div class="chip active" data-filter="all">すべて <span id="count-all">(0)</span></div>
+        <div class="chip web" data-filter="web">WEB面談 <span id="count-web">(0)</span></div>
+        <div class="chip taimen" data-filter="taimen">対面面談 <span id="count-taimen">(0)</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="events" class="events">
+    <div class="status">読み込み中... (初回は最大60秒かかります)</div>
+  </div>
+</div>
+
+<script>
+const PROXY_URL = 'https://calendar-proxy-95ks.onrender.com/calendar';
+
+let allEvents = [];
+let currentFilter = 'all';
+let currentMonth = '';
+
+function classify(title) {
+  const t = (title || '').toLowerCase();
+  const hasMen = /面接|面談/.test(title);
+  if (!hasMen) return null;
+  if (/web|ｗｅｂ|zoom|ｚｏｏｍ/i.test(t)) return 'web';
+  if (/対面|たいめん/.test(title)) return 'taimen';
+  return 'web';
+}
+
+function parseICS(text) {
+  const events = [];
+  const lines = text.replace(/\r\n[ \t]/g, '').split(/\r?\n/);
+  let cur = null;
+  for (const line of lines) {
+    if (line === 'BEGIN:VEVENT') cur = {};
+    else if (line === 'END:VEVENT') {
+      if (cur && cur.start && cur.title) events.push(cur);
+      cur = null;
+    }
+    else if (cur) {
+      if (line.startsWith('SUMMARY')) {
+        cur.title = line.substring(line.indexOf(':') + 1)
+          .replace(/\\n/g, ' ').replace(/\\,/g, ',').replace(/\\;/g, ';');
+      } else if (line.startsWith('DTSTART')) {
+        cur.start = parseDate(line);
+      } else if (line.startsWith('DTEND')) {
+        cur.end = parseDate(line);
+      } else if (line.startsWith('LOCATION')) {
+        cur.location = line.substring(line.indexOf(':') + 1);
+      }
+    }
+  }
+  return events;
+}
+
+function parseDate(line) {
+  const v = line.substring(line.indexOf(':') + 1);
+  if (v.length === 8) {
+    return new Date(+v.substr(0,4), +v.substr(4,2)-1, +v.substr(6,2));
+  }
+  const m = v.match(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z?)/);
+  if (!m) return null;
+  if (m[7] === 'Z') {
+    return new Date(Date.UTC(+m[1], +m[2]-1, +m[3], +m[4], +m[5], +m[6]));
+  }
+  return new Date(+m[1], +m[2]-1, +m[3], +m[4], +m[5], +m[6]);
+}
+
+function formatTime(d) {
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+function monthKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+
+function monthLabel(key) {
+  const [y, m] = key.split('-');
+  return `${y}年${+m}月`;
+}
+
+function render() {
+  const months = [...new Set(allEvents.map(e => monthKey(e.start)))].sort();
+  const sel = document.getElementById('month-select');
+
+  if (sel.children.length === 0 && months.length > 0) {
+    months.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = monthLabel(m);
+      sel.appendChild(opt);
+    });
+    const thisMonth = monthKey(new Date());
+    currentMonth = months.includes(thisMonth) ? thisMonth : months[0];
+    sel.value = currentMonth;
+  }
+
+  const inMonth = allEvents.filter(e => monthKey(e.start) === currentMonth);
+  const interviews = inMonth.map(e => ({...e, type: classify(e.title)})).filter(e => e.type);
+
+  document.getElementById('count-all').textContent = `(${interviews.length})`;
+  document.getElementById('count-web').textContent = `(${interviews.filter(e => e.type === 'web').length})`;
+  document.getElementById('count-taimen').textContent = `(${interviews.filter(e => e.type === 'taimen').length})`;
+
+  const filtered = currentFilter === 'all' ? interviews : interviews.filter(e => e.type === currentFilter);
+  filtered.sort((a, b) => a.start - b.start);
+
+  const container = document.getElementById('events');
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="status">該当する予定はありません</div>';
+    return;
+  }
+
+  let html = '';
+  let lastDay = '';
+  for (const e of filtered) {
+    const dayKey = `${e.start.getMonth()+1}/${e.start.getDate()}`;
+    const w = ['日','月','火','水','木','金','土'][e.start.getDay()];
+    const dayLabel = `${dayKey}(${w})`;
+    if (dayLabel !== lastDay) {
+      html += `<div class="day-header">${dayLabel}</div>`;
+      lastDay = dayLabel;
+    }
+    const time = `${formatTime(e.start)} - ${e.end ? formatTime(e.end) : ''}`;
+    const loc = e.location ? ` · ${e.location}` : '';
+    const badge = e.type === 'web' ? 'WEB' : '対面';
+    html += `
+      <div class="event ${e.type}">
+        <div class="event-row">
+          <div>
+            <div class="event-title">${escapeHTML(e.title)}</div>
+            <div class="event-meta">${time}${escapeHTML(loc)}</div>
+          </div>
+          <span class="badge ${e.type}">${badge}</span>
+        </div>
+      </div>`;
+  }
+  container.innerHTML = html;
+}
+
+function escapeHTML(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function load() {
+  document.getElementById('events').innerHTML = '<div class="status">読み込み中... (初回は最大60秒かかります)</div>';
+  try {
+    const res = await fetch(PROXY_URL);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    allEvents = parseICS(text);
+    render();
+  } catch (err) {
+    document.getElementById('events').innerHTML =
+      `<div class="status error">読み込みに失敗しました: ${escapeHTML(err.message)}<br>「更新」ボタンを押すか、しばらく待ってから再読み込みしてください</div>`;
+  }
+}
+
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    currentFilter = chip.dataset.filter;
+    render();
+  });
+});
+
+document.getElementById('month-select').addEventListener('change', e => {
+  currentMonth = e.target.value;
+  render();
+});
+
+document.getElementById('reload').addEventListener('click', load);
+
+load();
+</script>
+</body>
+</html>
