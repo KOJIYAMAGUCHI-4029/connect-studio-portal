@@ -42,6 +42,7 @@ select, button {
   border-radius: 6px;
   background: white;
   cursor: pointer;
+  font-family: inherit;
 }
 button:hover { background: #f5f5f7; }
 .chips { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -57,6 +58,28 @@ button:hover { background: #f5f5f7; }
 .chip.active { background: #1d1d1f; color: white; border-color: #1d1d1f; }
 .chip.web.active { background: #0066cc; border-color: #0066cc; }
 .chip.taimen.active { background: #d6541a; border-color: #d6541a; }
+
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6e6e73;
+  margin: 20px 0 8px;
+  padding-left: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.section-title:first-child { margin-top: 0; }
+.section-title .count {
+  font-size: 11px;
+  color: #6e6e73;
+  font-weight: 400;
+  background: white;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid #e5e5e7;
+}
+
 .events { display: flex; flex-direction: column; gap: 8px; }
 .event {
   background: white;
@@ -64,12 +87,36 @@ button:hover { background: #f5f5f7; }
   padding: 12px 14px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.05);
   border-left: 4px solid #b0b0b5;
+  transition: all 0.2s;
 }
 .event.web { border-left-color: #0066cc; }
 .event.taimen { border-left-color: #d6541a; }
-.event-row { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
-.event-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.event.done { opacity: 0.55; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
+.event.done .event-title { text-decoration: line-through; color: #6e6e73; }
+.event.done .badge { color: #6e6e73 !important; }
+
+.event-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.event-info { flex: 1; min-width: 0; }
+.event-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; word-break: break-word; }
 .event-meta { font-size: 12px; color: #6e6e73; }
+.event-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+.join-btn {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 5px 10px;
+  background: #0066cc;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.join-btn:hover { background: #0055aa; }
+
 .badge {
   font-size: 11px;
   font-weight: 600;
@@ -79,16 +126,25 @@ button:hover { background: #f5f5f7; }
 }
 .badge.web { background: #e6f2fb; color: #0066cc; }
 .badge.taimen { background: #fbeae0; color: #a04010; }
+
 .status { text-align: center; padding: 40px 16px; color: #6e6e73; font-size: 14px; }
 .status.error { color: #d32f2f; }
+
 .day-header {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: #6e6e73;
-  margin: 16px 0 6px;
+  margin: 14px 0 6px;
   padding-left: 4px;
 }
-.day-header:first-child { margin-top: 0; }
+.day-header:first-child { margin-top: 4px; }
+
+.empty {
+  text-align: center;
+  padding: 20px 16px;
+  color: #b0b0b5;
+  font-size: 13px;
+}
 </style>
 </head>
 <body>
@@ -114,7 +170,7 @@ button:hover { background: #f5f5f7; }
     </div>
   </div>
 
-  <div id="events" class="events">
+  <div id="events">
     <div class="status">読み込み中... (初回は最大60秒かかります)</div>
   </div>
 </div>
@@ -135,9 +191,23 @@ function classify(title) {
   return 'web';
 }
 
+function extractURL(text) {
+  if (!text) return null;
+  const match = text.match(/https?:\/\/[^\s<>"'\\]+/);
+  return match ? match[0] : null;
+}
+
+function unescapeICS(s) {
+  return String(s || '')
+    .replace(/\\n/g, '\n')
+    .replace(/\\,/g, ',')
+    .replace(/\\;/g, ';')
+    .replace(/\\\\/g, '\\');
+}
+
 function parseICS(text) {
   const events = [];
-  const lines = text.replace(/\r\n[ \t]/g, '').split(/\r?\n/);
+  const lines = text.replace(/\r\n[ \t]/g, '').replace(/\n[ \t]/g, '').split(/\r?\n/);
   let cur = null;
   for (const line of lines) {
     if (line === 'BEGIN:VEVENT') cur = {};
@@ -147,14 +217,15 @@ function parseICS(text) {
     }
     else if (cur) {
       if (line.startsWith('SUMMARY')) {
-        cur.title = line.substring(line.indexOf(':') + 1)
-          .replace(/\\n/g, ' ').replace(/\\,/g, ',').replace(/\\;/g, ';');
+        cur.title = unescapeICS(line.substring(line.indexOf(':') + 1));
       } else if (line.startsWith('DTSTART')) {
         cur.start = parseDate(line);
       } else if (line.startsWith('DTEND')) {
         cur.end = parseDate(line);
       } else if (line.startsWith('LOCATION')) {
-        cur.location = line.substring(line.indexOf(':') + 1);
+        cur.location = unescapeICS(line.substring(line.indexOf(':') + 1));
+      } else if (line.startsWith('DESCRIPTION')) {
+        cur.description = unescapeICS(line.substring(line.indexOf(':') + 1));
       }
     }
   }
@@ -187,6 +258,16 @@ function monthLabel(key) {
   return `${y}年${+m}月`;
 }
 
+function getMeetingURL(event) {
+  return extractURL(event.description) || extractURL(event.location);
+}
+
+function isDone(event) {
+  const now = new Date();
+  const endTime = event.end || new Date(event.start.getTime() + 60 * 60 * 1000);
+  return endTime < now;
+}
+
 function render() {
   const months = [...new Set(allEvents.map(e => monthKey(e.start)))].sort();
   const sel = document.getElementById('month-select');
@@ -204,7 +285,7 @@ function render() {
   }
 
   const inMonth = allEvents.filter(e => monthKey(e.start) === currentMonth);
-  const interviews = inMonth.map(e => ({...e, type: classify(e.title)})).filter(e => e.type);
+  const interviews = inMonth.map(e => ({...e, type: classify(e.title), done: isDone(e)})).filter(e => e.type);
 
   document.getElementById('count-all').textContent = `(${interviews.length})`;
   document.getElementById('count-web').textContent = `(${interviews.filter(e => e.type === 'web').length})`;
@@ -213,15 +294,43 @@ function render() {
   const filtered = currentFilter === 'all' ? interviews : interviews.filter(e => e.type === currentFilter);
   filtered.sort((a, b) => a.start - b.start);
 
+  const upcoming = filtered.filter(e => !e.done);
+  const done = filtered.filter(e => e.done);
+
   const container = document.getElementById('events');
+
   if (filtered.length === 0) {
     container.innerHTML = '<div class="status">該当する予定はありません</div>';
     return;
   }
 
   let html = '';
+
+  html += `<div class="section-title">📅 これから <span class="count">${upcoming.length}件</span></div>`;
+  html += '<div class="events">';
+  if (upcoming.length === 0) {
+    html += '<div class="empty">予定済みの面接はありません</div>';
+  } else {
+    html += renderEventList(upcoming, false);
+  }
+  html += '</div>';
+
+  html += `<div class="section-title">✓ 完了済み <span class="count">${done.length}件</span></div>`;
+  html += '<div class="events">';
+  if (done.length === 0) {
+    html += '<div class="empty">完了した面接はまだありません</div>';
+  } else {
+    html += renderEventList(done, true);
+  }
+  html += '</div>';
+
+  container.innerHTML = html;
+}
+
+function renderEventList(events, isDoneList) {
+  let html = '';
   let lastDay = '';
-  for (const e of filtered) {
+  for (const e of events) {
     const dayKey = `${e.start.getMonth()+1}/${e.start.getDate()}`;
     const w = ['日','月','火','水','木','金','土'][e.start.getDay()];
     const dayLabel = `${dayKey}(${w})`;
@@ -230,20 +339,28 @@ function render() {
       lastDay = dayLabel;
     }
     const time = `${formatTime(e.start)} - ${e.end ? formatTime(e.end) : ''}`;
-    const loc = e.location ? ` · ${e.location}` : '';
+    const loc = e.location && !e.location.startsWith('http') ? ` · ${escapeHTML(e.location)}` : '';
     const badge = e.type === 'web' ? 'WEB' : '対面';
+    const url = getMeetingURL(e);
+    const doneClass = isDoneList ? ' done' : '';
+    const joinBtn = (!isDoneList && url) ?
+      `<a href="${escapeHTML(url)}" target="_blank" rel="noopener noreferrer" class="join-btn">▶ 開く</a>` : '';
+
     html += `
-      <div class="event ${e.type}">
+      <div class="event ${e.type}${doneClass}">
         <div class="event-row">
-          <div>
+          <div class="event-info">
             <div class="event-title">${escapeHTML(e.title)}</div>
-            <div class="event-meta">${time}${escapeHTML(loc)}</div>
+            <div class="event-meta">${time}${loc}</div>
           </div>
-          <span class="badge ${e.type}">${badge}</span>
+          <div class="event-actions">
+            ${joinBtn}
+            <span class="badge ${e.type}">${badge}</span>
+          </div>
         </div>
       </div>`;
   }
-  container.innerHTML = html;
+  return html;
 }
 
 function escapeHTML(s) {
@@ -281,6 +398,7 @@ document.getElementById('month-select').addEventListener('change', e => {
 document.getElementById('reload').addEventListener('click', load);
 
 load();
+setInterval(render, 60000);
 </script>
 </body>
 </html>
