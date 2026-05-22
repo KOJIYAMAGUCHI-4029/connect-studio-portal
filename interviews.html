@@ -26,16 +26,17 @@ header { margin-bottom: 18px; }
 h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
 .subtitle { font-size: 13px; color: #6e6e73; }
 
-.login-screen {
+.card {
   background: white;
   border-radius: 12px;
-  padding: 40px 24px;
-  text-align: center;
+  padding: 20px 24px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-  margin-top: 20px;
+  margin-bottom: 14px;
 }
-.login-screen h2 { font-size: 18px; margin-bottom: 8px; font-weight: 600; }
-.login-screen p { font-size: 13px; color: #6e6e73; margin-bottom: 20px; }
+.card.center { text-align: center; padding: 40px 24px; }
+.card h2 { font-size: 18px; margin-bottom: 8px; font-weight: 600; }
+.card p { font-size: 13px; color: #6e6e73; margin-bottom: 16px; }
+
 .gsi-btn {
   display: inline-flex;
   align-items: center;
@@ -53,6 +54,23 @@ h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
 .gsi-btn:hover { background: #f5f5f7; }
 .gsi-btn img { width: 18px; height: 18px; }
 
+.primary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  background: #0066cc;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+}
+.primary-btn:hover { background: #0055aa; }
+.primary-btn:disabled { background: #b0b0b5; cursor: not-allowed; }
+
 .user-bar {
   background: white;
   border-radius: 10px;
@@ -61,10 +79,11 @@ h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
   box-shadow: 0 1px 3px rgba(0,0,0,0.05);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   font-size: 12px;
+  flex-wrap: wrap;
 }
-.user-bar .email { color: #6e6e73; flex: 1; }
+.user-bar .email { color: #6e6e73; flex: 1; min-width: 200px; }
 .user-bar button {
   font-size: 11px;
   padding: 4px 10px;
@@ -72,7 +91,55 @@ h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
   border: 1px solid #d2d2d7;
   border-radius: 6px;
   cursor: pointer;
+  font-family: inherit;
 }
+
+.cal-list {
+  text-align: left;
+  margin: 12px 0 20px;
+  max-height: 400px;
+  overflow-y: auto;
+  border: 0.5px solid #e5e5e7;
+  border-radius: 8px;
+}
+.cal-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 0.5px solid #e5e5e7;
+  cursor: pointer;
+  font-size: 13px;
+}
+.cal-item:last-child { border-bottom: none; }
+.cal-item:hover { background: #f5f5f7; }
+.cal-item input[type="checkbox"] { cursor: pointer; }
+.cal-item .cal-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.cal-item .cal-name { flex: 1; }
+.cal-item .cal-role {
+  font-size: 10px;
+  padding: 1px 6px;
+  background: #f0f0f3;
+  color: #6e6e73;
+  border-radius: 999px;
+}
+.cal-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+.cal-toolbar a {
+  color: #0066cc;
+  cursor: pointer;
+  text-decoration: none;
+}
+.cal-toolbar a:hover { text-decoration: underline; }
 
 .controls {
   background: white;
@@ -173,7 +240,6 @@ button:hover { background: #f5f5f7; }
   padding: 12px 14px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.05);
   border-left: 4px solid #b0b0b5;
-  transition: all 0.2s;
 }
 .event.cat-interview { border-left-color: #6b2bb8; }
 .event.cat-meeting { border-left-color: #1D9E75; }
@@ -186,7 +252,7 @@ button:hover { background: #f5f5f7; }
 .event-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .event-info { flex: 1; min-width: 0; }
 
-.tag-row { display: flex; gap: 4px; margin-bottom: 4px; flex-wrap: wrap; }
+.tag-row { display: flex; gap: 4px; margin-bottom: 4px; flex-wrap: wrap; align-items: center; }
 .tag {
   font-size: 10px;
   padding: 1px 7px;
@@ -201,6 +267,12 @@ button:hover { background: #f5f5f7; }
 .tag.fmt-taimen { background: #fbeae0; color: #a04010; }
 .tag.target { background: #f0f0f3; color: #4a4a4f; }
 .tag.daiuchi { background: #ffe5e5; color: #c41818; }
+.tag.cal-source {
+  background: transparent;
+  color: #6e6e73;
+  border: 0.5px solid #d2d2d7;
+  font-size: 9px;
+}
 
 .event-title { font-size: 14px; font-weight: 600; word-break: break-word; }
 .event-meta { font-size: 11px; color: #6e6e73; margin-top: 2px; }
@@ -261,7 +333,7 @@ button:hover { background: #f5f5f7; }
     <div class="subtitle">CONNECT カレンダー連携 / 区分別表示</div>
   </header>
 
-  <div id="login-screen" class="login-screen">
+  <div id="login-screen" class="card center">
     <h2>Googleアカウントでログイン</h2>
     <p>ご自身のGoogleカレンダーから面接予定を表示します</p>
     <button class="gsi-btn" id="signin-btn">
@@ -271,9 +343,23 @@ button:hover { background: #f5f5f7; }
     <p style="font-size: 11px; margin-top: 20px; color: #999;">※ テストユーザーとして登録されたメンバーのみ利用可能です</p>
   </div>
 
+  <div id="cal-select-screen" class="card hidden">
+    <h2>カレンダーを選択</h2>
+    <p>面接・面談の予定が入っているカレンダーをチェックしてください</p>
+    <div class="cal-toolbar">
+      <a id="select-all">すべて選択</a>
+      <a id="select-none">すべて解除</a>
+    </div>
+    <div class="cal-list" id="cal-list">
+      <div class="status">読み込み中...</div>
+    </div>
+    <button class="primary-btn" id="confirm-cals">この設定で表示する</button>
+  </div>
+
   <div id="app" class="hidden">
     <div class="user-bar">
       <div class="email" id="user-email"></div>
+      <button id="cal-settings-btn">⚙ カレンダー設定</button>
       <button id="signout-btn">ログアウト</button>
     </div>
 
@@ -321,25 +407,22 @@ button:hover { background: #f5f5f7; }
 
 <script>
 const CLIENT_ID = '627111669268-8cc2dcnrf4ijo74fprq1jdo8k2mn1l9j.apps.googleusercontent.com';
-const SCOPE = 'https://www.googleapis.com/auth/calendar.readonly';
+const SCOPE = 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/userinfo.email';
+const STORAGE_KEY_CALS = 'gcal_selected_cals';
 
 let allEvents = [];
 let currentType = 'all';
 let currentMonth = '';
 let tokenClient = null;
 let accessToken = null;
+let availableCalendars = [];
+let selectedCalIds = [];
 
 const TYPE_LABEL = {
-  'interview-taimen': '対面面接',
-  'interview-web': 'WEB面接',
-  'meeting-taimen-doctor': '対面・医師',
-  'meeting-taimen-hospital': '対面・医療機関',
-  'meeting-taimen-company': '対面・企業',
-  'meeting-web-doctor': 'WEB・医師',
-  'meeting-web-hospital': 'WEB・医療機関',
-  'visit-doctor': '来社・医師',
-  'visit-hospital': '来社・医療機関',
-  'visit-company': '来社・企業'
+  'interview-taimen': '対面面接', 'interview-web': 'WEB面接',
+  'meeting-taimen-doctor': '対面・医師', 'meeting-taimen-hospital': '対面・医療機関', 'meeting-taimen-company': '対面・企業',
+  'meeting-web-doctor': 'WEB・医師', 'meeting-web-hospital': 'WEB・医療機関',
+  'visit-doctor': '来社・医師', 'visit-hospital': '来社・医療機関', 'visit-company': '来社・企業'
 };
 
 function classify(title) {
@@ -358,25 +441,14 @@ function classify(title) {
   else if (/企業[）)]/.test(title)) target = 'company';
 
   let category, format;
-  if (visit) {
-    category = 'visit';
-    format = 'taimen';
-  } else if (isInterview) {
-    category = 'interview';
-    format = taimen ? 'taimen' : 'web';
-  } else {
-    category = 'meeting';
-    format = taimen ? 'taimen' : 'web';
-  }
+  if (visit) { category = 'visit'; format = 'taimen'; }
+  else if (isInterview) { category = 'interview'; format = taimen ? 'taimen' : 'web'; }
+  else { category = 'meeting'; format = taimen ? 'taimen' : 'web'; }
 
   let type;
-  if (category === 'interview') {
-    type = `interview-${format}`;
-  } else if (category === 'visit') {
-    type = target ? `visit-${target}` : null;
-  } else {
-    type = (format && target) ? `meeting-${format}-${target}` : null;
-  }
+  if (category === 'interview') type = `interview-${format}`;
+  else if (category === 'visit') type = target ? `visit-${target}` : null;
+  else type = (format && target) ? `meeting-${format}-${target}` : null;
 
   return { category, format, target, daiuchi, type };
 }
@@ -435,8 +507,7 @@ function render() {
   document.getElementById('count-all').textContent = `(${inMonth.length})`;
   Object.keys(TYPE_LABEL).forEach(type => {
     const n = inMonth.filter(e => e.type === type).length;
-    const elements = document.querySelectorAll(`[data-count="${type}"]`);
-    elements.forEach(el => el.textContent = `(${n})`);
+    document.querySelectorAll(`[data-count="${type}"]`).forEach(el => el.textContent = `(${n})`);
   });
 
   let filtered = currentType === 'all' ? inMonth : inMonth.filter(e => e.type === currentType);
@@ -468,9 +539,10 @@ function render() {
 function renderEventList(events, isDoneList) {
   let html = '';
   let lastDay = '';
-  const FMT_LABEL = { web: 'WEB', taimen: '対面' };
-  const TARGET_LABEL = { doctor: '医師', hospital: '医療機関', company: '企業' };
-  const CAT_LABEL = { interview: '面接', meeting: '面談', visit: '来社' };
+  const FMT = { web: 'WEB', taimen: '対面' };
+  const TARGET = { doctor: '医師', hospital: '医療機関', company: '企業' };
+  const CAT = { interview: '面接', meeting: '面談', visit: '来社' };
+  const showSource = selectedCalIds.length > 1;
 
   for (const e of events) {
     const dayKey = `${e.start.getMonth()+1}/${e.start.getDate()}`;
@@ -490,9 +562,10 @@ function renderEventList(events, isDoneList) {
 
     let tags = '';
     if (e.daiuchi) tags += `<span class="tag daiuchi">代打</span>`;
-    tags += `<span class="tag cat-${e.category}">${CAT_LABEL[e.category]}</span>`;
-    if (e.format) tags += `<span class="tag fmt-${e.format}">${FMT_LABEL[e.format]}</span>`;
-    if (e.target) tags += `<span class="tag target">${TARGET_LABEL[e.target]}</span>`;
+    tags += `<span class="tag cat-${e.category}">${CAT[e.category]}</span>`;
+    if (e.format) tags += `<span class="tag fmt-${e.format}">${FMT[e.format]}</span>`;
+    if (e.target) tags += `<span class="tag target">${TARGET[e.target]}</span>`;
+    if (showSource && e.calendarName) tags += `<span class="tag cal-source">${escapeHTML(e.calendarName)}</span>`;
 
     html += `
       <div class="event cat-${e.category}${doneClass}${daiuchiClass}">
@@ -502,9 +575,7 @@ function renderEventList(events, isDoneList) {
             <div class="event-title">${escapeHTML(e.title)}</div>
             <div class="event-meta">${time}${loc}</div>
           </div>
-          <div class="event-actions">
-            ${joinBtn}
-          </div>
+          <div class="event-actions">${joinBtn}</div>
         </div>
       </div>`;
   }
@@ -515,7 +586,27 @@ function escapeHTML(s) {
   return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-async function fetchEvents() {
+async function fetchCalendarList() {
+  try {
+    const res = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
+    if (res.status === 401) { handleAuthError(); return; }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    availableCalendars = (data.items || []).filter(c => !c.deleted);
+  } catch (err) {
+    console.error('Calendar list fetch failed:', err);
+    availableCalendars = [];
+  }
+}
+
+async function fetchEventsFromAllSelected() {
+  if (selectedCalIds.length === 0) {
+    document.getElementById('events').innerHTML = '<div class="status">表示するカレンダーが選択されていません</div>';
+    return;
+  }
+
   document.getElementById('events').innerHTML = '<div class="status">読み込み中...</div>';
 
   const now = new Date();
@@ -523,31 +614,28 @@ async function fetchEvents() {
   const timeMax = new Date(now.getFullYear(), now.getMonth() + 6, 1).toISOString();
 
   try {
-    const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?` +
-      `timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&` +
-      `singleEvents=true&orderBy=startTime&maxResults=2500`;
-
-    const res = await fetch(url, {
-      headers: { 'Authorization': `Bearer ${accessToken}` }
+    const promises = selectedCalIds.map(calId => {
+      const calMeta = availableCalendars.find(c => c.id === calId);
+      const calName = calMeta ? (calMeta.summaryOverride || calMeta.summary) : calId;
+      const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events?` +
+        `timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&` +
+        `singleEvents=true&orderBy=startTime&maxResults=2500`;
+      return fetch(url, { headers: { 'Authorization': `Bearer ${accessToken}` } })
+        .then(r => r.status === 401 ? { authError: true } : (r.ok ? r.json() : { items: [] }))
+        .then(d => (d.items || []).map(item => ({
+          title: item.summary || '',
+          start: new Date(item.start.dateTime || item.start.date),
+          end: item.end ? new Date(item.end.dateTime || item.end.date) : null,
+          location: item.location || '',
+          description: item.description || '',
+          hangoutLink: item.hangoutLink || '',
+          calendarName: calName
+        })))
+        .catch(() => []);
     });
 
-    if (res.status === 401) {
-      accessToken = null;
-      showLogin();
-      return;
-    }
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-    const data = await res.json();
-    allEvents = (data.items || []).map(item => ({
-      title: item.summary || '',
-      start: new Date(item.start.dateTime || item.start.date),
-      end: item.end ? new Date(item.end.dateTime || item.end.date) : null,
-      location: item.location || '',
-      description: item.description || '',
-      hangoutLink: item.hangoutLink || ''
-    })).filter(e => e.start);
-
+    const results = await Promise.all(promises);
+    allEvents = results.flat().filter(e => e.start);
     render();
   } catch (err) {
     document.getElementById('events').innerHTML =
@@ -567,16 +655,76 @@ async function fetchUserInfo() {
   } catch (e) {}
 }
 
+function handleAuthError() {
+  accessToken = null;
+  sessionStorage.removeItem('gcal_token');
+  showLogin();
+}
+
+function renderCalendarSelection() {
+  const list = document.getElementById('cal-list');
+  if (availableCalendars.length === 0) {
+    list.innerHTML = '<div class="status">利用可能なカレンダーが見つかりません</div>';
+    return;
+  }
+  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY_CALS) || '[]');
+  let html = '';
+  availableCalendars.forEach(cal => {
+    const name = cal.summaryOverride || cal.summary;
+    const checked = saved.length === 0 ? (cal.primary || cal.accessRole === 'owner') : saved.includes(cal.id);
+    const roleLabel = cal.primary ? 'メイン' : cal.accessRole;
+    html += `
+      <label class="cal-item">
+        <input type="checkbox" value="${escapeHTML(cal.id)}" ${checked ? 'checked' : ''}>
+        <span class="cal-dot" style="background:${escapeHTML(cal.backgroundColor || '#999')}"></span>
+        <span class="cal-name">${escapeHTML(name)}</span>
+        <span class="cal-role">${escapeHTML(roleLabel)}</span>
+      </label>`;
+  });
+  list.innerHTML = html;
+}
+
+function getCheckedCalIds() {
+  return Array.from(document.querySelectorAll('#cal-list input[type="checkbox"]:checked')).map(cb => cb.value);
+}
+
+async function showCalendarSelection() {
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('cal-select-screen').classList.remove('hidden');
+  if (availableCalendars.length === 0) {
+    await fetchCalendarList();
+  }
+  renderCalendarSelection();
+}
+
 function showApp() {
   document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('cal-select-screen').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
   fetchUserInfo();
-  fetchEvents();
+  fetchEventsFromAllSelected();
 }
 
 function showLogin() {
   document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('cal-select-screen').classList.add('hidden');
   document.getElementById('app').classList.add('hidden');
+}
+
+async function onAuthenticated() {
+  await fetchCalendarList();
+  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY_CALS) || '[]');
+  if (saved.length === 0) {
+    await showCalendarSelection();
+  } else {
+    selectedCalIds = saved.filter(id => availableCalendars.some(c => c.id === id));
+    if (selectedCalIds.length === 0) {
+      await showCalendarSelection();
+    } else {
+      showApp();
+    }
+  }
 }
 
 function initGsi() {
@@ -586,12 +734,12 @@ function initGsi() {
   }
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
-    scope: SCOPE + ' https://www.googleapis.com/auth/userinfo.email',
+    scope: SCOPE,
     callback: (response) => {
       if (response.access_token) {
         accessToken = response.access_token;
         sessionStorage.setItem('gcal_token', accessToken);
-        showApp();
+        onAuthenticated();
       }
     }
   });
@@ -599,7 +747,7 @@ function initGsi() {
   const saved = sessionStorage.getItem('gcal_token');
   if (saved) {
     accessToken = saved;
-    showApp();
+    onAuthenticated();
   }
 }
 
@@ -609,12 +757,27 @@ document.getElementById('signin-btn').addEventListener('click', () => {
 
 document.getElementById('signout-btn').addEventListener('click', () => {
   sessionStorage.removeItem('gcal_token');
-  if (accessToken && google.accounts.oauth2) {
+  if (accessToken && google.accounts && google.accounts.oauth2) {
     google.accounts.oauth2.revoke(accessToken, () => {});
   }
   accessToken = null;
   allEvents = [];
   showLogin();
+});
+
+document.getElementById('cal-settings-btn').addEventListener('click', showCalendarSelection);
+
+document.getElementById('confirm-cals').addEventListener('click', () => {
+  selectedCalIds = getCheckedCalIds();
+  localStorage.setItem(STORAGE_KEY_CALS, JSON.stringify(selectedCalIds));
+  showApp();
+});
+
+document.getElementById('select-all').addEventListener('click', () => {
+  document.querySelectorAll('#cal-list input[type="checkbox"]').forEach(cb => cb.checked = true);
+});
+document.getElementById('select-none').addEventListener('click', () => {
+  document.querySelectorAll('#cal-list input[type="checkbox"]').forEach(cb => cb.checked = false);
 });
 
 document.querySelectorAll('.chip').forEach(chip => {
@@ -637,7 +800,7 @@ document.getElementById('month-select').addEventListener('change', e => {
   render();
 });
 
-document.getElementById('reload').addEventListener('click', fetchEvents);
+document.getElementById('reload').addEventListener('click', fetchEventsFromAllSelected);
 
 window.addEventListener('load', initGsi);
 setInterval(() => { if (accessToken) render(); }, 60000);
