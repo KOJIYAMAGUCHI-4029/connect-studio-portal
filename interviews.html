@@ -26,6 +26,54 @@ header { margin-bottom: 18px; }
 h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
 .subtitle { font-size: 13px; color: #6e6e73; }
 
+.login-screen {
+  background: white;
+  border-radius: 12px;
+  padding: 40px 24px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  margin-top: 20px;
+}
+.login-screen h2 { font-size: 18px; margin-bottom: 8px; font-weight: 600; }
+.login-screen p { font-size: 13px; color: #6e6e73; margin-bottom: 20px; }
+.gsi-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  background: white;
+  border: 1px solid #d2d2d7;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1f1f1f;
+  font-family: inherit;
+}
+.gsi-btn:hover { background: #f5f5f7; }
+.gsi-btn img { width: 18px; height: 18px; }
+
+.user-bar {
+  background: white;
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin-bottom: 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+.user-bar .email { color: #6e6e73; flex: 1; }
+.user-bar button {
+  font-size: 11px;
+  padding: 4px 10px;
+  background: white;
+  border: 1px solid #d2d2d7;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
 .controls {
   background: white;
   border-radius: 12px;
@@ -73,9 +121,6 @@ button:hover { background: #f5f5f7; }
   font-size: 11px;
   font-weight: 600;
   margin-bottom: 6px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
 }
 .cat-label.interview { color: #6b2bb8; }
 .cat-label.meeting { color: #1a6b3a; }
@@ -154,7 +199,6 @@ button:hover { background: #f5f5f7; }
 .tag.cat-visit { background: #fbeee0; color: #8a4a0a; }
 .tag.fmt-web { background: #e6f2fb; color: #0066cc; }
 .tag.fmt-taimen { background: #fbeae0; color: #a04010; }
-.tag.fmt-zoom { background: #f0e0e6; color: #8a1a4a; }
 .tag.target { background: #f0f0f3; color: #4a4a4f; }
 .tag.daiuchi { background: #ffe5e5; color: #c41818; }
 
@@ -197,6 +241,8 @@ button:hover { background: #f5f5f7; }
   font-size: 13px;
 }
 
+.hidden { display: none !important; }
+
 @media (max-width: 600px) {
   body { padding: 16px 12px; }
   .container { max-width: 100%; }
@@ -205,6 +251,7 @@ button:hover { background: #f5f5f7; }
   .event { padding: 10px 12px; }
 }
 </style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 <div class="container">
@@ -214,85 +261,96 @@ button:hover { background: #f5f5f7; }
     <div class="subtitle">CONNECT カレンダー連携 / 区分別表示</div>
   </header>
 
-  <div class="controls">
-    <div class="top-row">
-      <select id="month-select" style="font-weight: 500;"></select>
-      <button id="reload">↻ 更新</button>
-      <div class="all-chip active" id="chip-all">すべて <span id="count-all">(0)</span></div>
-    </div>
-
-    <div class="cat-group">
-      <div class="cat-label interview">■ 面接</div>
-      <div class="chips">
-        <div class="chip" data-type="interview-taimen">対面面接 <span class="count" data-count="interview-taimen">(0)</span></div>
-        <div class="chip" data-type="interview-web">WEB面接 <span class="count" data-count="interview-web">(0)</span></div>
-        <div class="chip" data-type="interview-zoom">会社ZOOM面接 <span class="count" data-count="interview-zoom">(0)</span></div>
-      </div>
-    </div>
-
-    <div class="cat-group">
-      <div class="cat-label meeting">■ 面談</div>
-      <div class="chips">
-        <div class="chip" data-type="meeting-taimen-doctor">対面・医師 <span class="count" data-count="meeting-taimen-doctor">(0)</span></div>
-        <div class="chip" data-type="meeting-taimen-hospital">対面・医療機関 <span class="count" data-count="meeting-taimen-hospital">(0)</span></div>
-        <div class="chip" data-type="meeting-taimen-company">対面・企業 <span class="count" data-count="meeting-taimen-company">(0)</span></div>
-        <div class="chip" data-type="meeting-web-doctor">WEB・医師 <span class="count" data-count="meeting-web-doctor">(0)</span></div>
-        <div class="chip" data-type="meeting-web-hospital">WEB・医療機関 <span class="count" data-count="meeting-web-hospital">(0)</span></div>
-        <div class="chip" data-type="meeting-zoom-doctor">会社ZOOM・医師 <span class="count" data-count="meeting-zoom-doctor">(0)</span></div>
-        <div class="chip" data-type="meeting-zoom-hospital">会社ZOOM・医療機関 <span class="count" data-count="meeting-zoom-hospital">(0)</span></div>
-      </div>
-    </div>
-
-    <div class="cat-group">
-      <div class="cat-label visit">■ 来社</div>
-      <div class="chips">
-        <div class="chip" data-type="visit-doctor">来社・医師 <span class="count" data-count="visit-doctor">(0)</span></div>
-        <div class="chip" data-type="visit-hospital">来社・医療機関 <span class="count" data-count="visit-hospital">(0)</span></div>
-        <div class="chip" data-type="visit-company">来社・企業 <span class="count" data-count="visit-company">(0)</span></div>
-      </div>
-    </div>
+  <div id="login-screen" class="login-screen">
+    <h2>Googleアカウントでログイン</h2>
+    <p>ご自身のGoogleカレンダーから面接予定を表示します</p>
+    <button class="gsi-btn" id="signin-btn">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="">
+      Googleでログイン
+    </button>
+    <p style="font-size: 11px; margin-top: 20px; color: #999;">※ テストユーザーとして登録されたメンバーのみ利用可能です</p>
   </div>
 
-  <div id="events">
-    <div class="status">読み込み中... (初回は最大60秒かかります)</div>
+  <div id="app" class="hidden">
+    <div class="user-bar">
+      <div class="email" id="user-email"></div>
+      <button id="signout-btn">ログアウト</button>
+    </div>
+
+    <div class="controls">
+      <div class="top-row">
+        <select id="month-select" style="font-weight: 500;"></select>
+        <button id="reload">↻ 更新</button>
+        <div class="all-chip active" id="chip-all">すべて <span id="count-all">(0)</span></div>
+      </div>
+
+      <div class="cat-group">
+        <div class="cat-label interview">■ 面接</div>
+        <div class="chips">
+          <div class="chip" data-type="interview-taimen">対面面接 <span class="count" data-count="interview-taimen">(0)</span></div>
+          <div class="chip" data-type="interview-web">WEB面接 <span class="count" data-count="interview-web">(0)</span></div>
+        </div>
+      </div>
+
+      <div class="cat-group">
+        <div class="cat-label meeting">■ 面談</div>
+        <div class="chips">
+          <div class="chip" data-type="meeting-taimen-doctor">対面・医師 <span class="count" data-count="meeting-taimen-doctor">(0)</span></div>
+          <div class="chip" data-type="meeting-taimen-hospital">対面・医療機関 <span class="count" data-count="meeting-taimen-hospital">(0)</span></div>
+          <div class="chip" data-type="meeting-taimen-company">対面・企業 <span class="count" data-count="meeting-taimen-company">(0)</span></div>
+          <div class="chip" data-type="meeting-web-doctor">WEB・医師 <span class="count" data-count="meeting-web-doctor">(0)</span></div>
+          <div class="chip" data-type="meeting-web-hospital">WEB・医療機関 <span class="count" data-count="meeting-web-hospital">(0)</span></div>
+        </div>
+      </div>
+
+      <div class="cat-group">
+        <div class="cat-label visit">■ 来社</div>
+        <div class="chips">
+          <div class="chip" data-type="visit-doctor">来社・医師 <span class="count" data-count="visit-doctor">(0)</span></div>
+          <div class="chip" data-type="visit-hospital">来社・医療機関 <span class="count" data-count="visit-hospital">(0)</span></div>
+          <div class="chip" data-type="visit-company">来社・企業 <span class="count" data-count="visit-company">(0)</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="events">
+      <div class="status">読み込み中...</div>
+    </div>
   </div>
 </div>
 
 <script>
-const PROXY_URL = 'https://calendar-proxy-95ks.onrender.com/calendar';
+const CLIENT_ID = '627111669268-8cc2dcnrf4ijo74fprq1jdo8k2mn1l9j.apps.googleusercontent.com';
+const SCOPE = 'https://www.googleapis.com/auth/calendar.readonly';
 
 let allEvents = [];
 let currentType = 'all';
 let currentMonth = '';
+let tokenClient = null;
+let accessToken = null;
 
 const TYPE_LABEL = {
-  'interview-taimen': { cat: '面接', detail: '対面' },
-  'interview-web': { cat: '面接', detail: 'WEB' },
-  'interview-zoom': { cat: '面接', detail: '会社ZOOM' },
-  'meeting-taimen-doctor': { cat: '面談', detail: '対面・医師' },
-  'meeting-taimen-hospital': { cat: '面談', detail: '対面・医療機関' },
-  'meeting-taimen-company': { cat: '面談', detail: '対面・企業' },
-  'meeting-web-doctor': { cat: '面談', detail: 'WEB・医師' },
-  'meeting-web-hospital': { cat: '面談', detail: 'WEB・医療機関' },
-  'meeting-zoom-doctor': { cat: '面談', detail: '会社ZOOM・医師' },
-  'meeting-zoom-hospital': { cat: '面談', detail: '会社ZOOM・医療機関' },
-  'visit-doctor': { cat: '来社', detail: '医師' },
-  'visit-hospital': { cat: '来社', detail: '医療機関' },
-  'visit-company': { cat: '来社', detail: '企業' }
+  'interview-taimen': '対面面接',
+  'interview-web': 'WEB面接',
+  'meeting-taimen-doctor': '対面・医師',
+  'meeting-taimen-hospital': '対面・医療機関',
+  'meeting-taimen-company': '対面・企業',
+  'meeting-web-doctor': 'WEB・医師',
+  'meeting-web-hospital': 'WEB・医療機関',
+  'visit-doctor': '来社・医師',
+  'visit-hospital': '来社・医療機関',
+  'visit-company': '来社・企業'
 };
 
 function classify(title) {
   if (!title) return null;
-  const t = title.toLowerCase();
   const isInterview = /面接/.test(title);
   const isMeeting = /面談/.test(title);
   if (!isInterview && !isMeeting) return null;
 
   const daiuchi = /代打/.test(title);
   const visit = /来社/.test(title);
-  const zoom = /会社zoom|会社ｚｏｏｍ/i.test(t);
   const taimen = /対面/.test(title);
-  const webExplicit = /web|ｗｅｂ/i.test(t);
 
   let target = null;
   if (/医師[）)]/.test(title)) target = 'doctor';
@@ -305,14 +363,10 @@ function classify(title) {
     format = 'taimen';
   } else if (isInterview) {
     category = 'interview';
-    if (zoom) format = 'zoom';
-    else if (taimen) format = 'taimen';
-    else format = 'web';
+    format = taimen ? 'taimen' : 'web';
   } else {
     category = 'meeting';
-    if (zoom) format = 'zoom';
-    else if (taimen) format = 'taimen';
-    else format = 'web';
+    format = taimen ? 'taimen' : 'web';
   }
 
   let type;
@@ -333,52 +387,10 @@ function extractURL(text) {
   return match ? match[0] : null;
 }
 
-function unescapeICS(s) {
-  return String(s || '')
-    .replace(/\\n/g, '\n')
-    .replace(/\\,/g, ',')
-    .replace(/\\;/g, ';')
-    .replace(/\\\\/g, '\\');
-}
-
-function parseICS(text) {
-  const events = [];
-  const lines = text.replace(/\r\n[ \t]/g, '').replace(/\n[ \t]/g, '').split(/\r?\n/);
-  let cur = null;
-  for (const line of lines) {
-    if (line === 'BEGIN:VEVENT') cur = {};
-    else if (line === 'END:VEVENT') {
-      if (cur && cur.start && cur.title) events.push(cur);
-      cur = null;
-    }
-    else if (cur) {
-      if (line.startsWith('SUMMARY')) {
-        cur.title = unescapeICS(line.substring(line.indexOf(':') + 1));
-      } else if (line.startsWith('DTSTART')) {
-        cur.start = parseDate(line);
-      } else if (line.startsWith('DTEND')) {
-        cur.end = parseDate(line);
-      } else if (line.startsWith('LOCATION')) {
-        cur.location = unescapeICS(line.substring(line.indexOf(':') + 1));
-      } else if (line.startsWith('DESCRIPTION')) {
-        cur.description = unescapeICS(line.substring(line.indexOf(':') + 1));
-      }
-    }
-  }
-  return events;
-}
-
-function parseDate(line) {
-  const v = line.substring(line.indexOf(':') + 1);
-  if (v.length === 8) {
-    return new Date(+v.substr(0,4), +v.substr(4,2)-1, +v.substr(6,2));
-  }
-  const m = v.match(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z?)/);
-  if (!m) return null;
-  if (m[7] === 'Z') {
-    return new Date(Date.UTC(+m[1], +m[2]-1, +m[3], +m[4], +m[5], +m[6]));
-  }
-  return new Date(+m[1], +m[2]-1, +m[3], +m[4], +m[5], +m[6]);
+function isDone(event) {
+  const now = new Date();
+  const endTime = event.end || new Date(event.start.getTime() + 60 * 60 * 1000);
+  return endTime < now;
 }
 
 function formatTime(d) {
@@ -392,16 +404,6 @@ function monthKey(d) {
 function monthLabel(key) {
   const [y, m] = key.split('-');
   return `${y}年${+m}月`;
-}
-
-function getMeetingURL(event) {
-  return extractURL(event.description) || extractURL(event.location);
-}
-
-function isDone(event) {
-  const now = new Date();
-  const endTime = event.end || new Date(event.start.getTime() + 60 * 60 * 1000);
-  return endTime < now;
 }
 
 function buildIndex() {
@@ -466,7 +468,7 @@ function render() {
 function renderEventList(events, isDoneList) {
   let html = '';
   let lastDay = '';
-  const FMT_LABEL = { web: 'WEB', taimen: '対面', zoom: '会社ZOOM' };
+  const FMT_LABEL = { web: 'WEB', taimen: '対面' };
   const TARGET_LABEL = { doctor: '医師', hospital: '医療機関', company: '企業' };
   const CAT_LABEL = { interview: '面接', meeting: '面談', visit: '来社' };
 
@@ -480,7 +482,7 @@ function renderEventList(events, isDoneList) {
     }
     const time = `${formatTime(e.start)} - ${e.end ? formatTime(e.end) : ''}`;
     const loc = e.location && !e.location.startsWith('http') ? ` · ${escapeHTML(e.location)}` : '';
-    const url = getMeetingURL(e);
+    const url = extractURL(e.description) || extractURL(e.location) || e.hangoutLink;
     const doneClass = isDoneList ? ' done' : '';
     const daiuchiClass = e.daiuchi ? ' daiuchi' : '';
     const joinBtn = (!isDoneList && url) ?
@@ -513,46 +515,132 @@ function escapeHTML(s) {
   return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-async function load() {
-  document.getElementById('events').innerHTML = '<div class="status">読み込み中... (初回は最大60秒かかります)</div>';
+async function fetchEvents() {
+  document.getElementById('events').innerHTML = '<div class="status">読み込み中...</div>';
+
+  const now = new Date();
+  const timeMin = new Date(now.getFullYear(), now.getMonth() - 2, 1).toISOString();
+  const timeMax = new Date(now.getFullYear(), now.getMonth() + 6, 1).toISOString();
+
   try {
-    const res = await fetch(PROXY_URL);
+    const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?` +
+      `timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&` +
+      `singleEvents=true&orderBy=startTime&maxResults=2500`;
+
+    const res = await fetch(url, {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
+
+    if (res.status === 401) {
+      accessToken = null;
+      showLogin();
+      return;
+    }
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const text = await res.text();
-    allEvents = parseICS(text);
+
+    const data = await res.json();
+    allEvents = (data.items || []).map(item => ({
+      title: item.summary || '',
+      start: new Date(item.start.dateTime || item.start.date),
+      end: item.end ? new Date(item.end.dateTime || item.end.date) : null,
+      location: item.location || '',
+      description: item.description || '',
+      hangoutLink: item.hangoutLink || ''
+    })).filter(e => e.start);
+
     render();
   } catch (err) {
     document.getElementById('events').innerHTML =
-      `<div class="status error">読み込みに失敗しました: ${escapeHTML(err.message)}<br>「更新」ボタンを押すか、しばらく待ってから再読み込みしてください</div>`;
+      `<div class="status error">読み込みに失敗しました: ${escapeHTML(err.message)}</div>`;
   }
 }
 
-function setActive(type) {
-  currentType = type;
-  document.querySelectorAll('.chip, .all-chip').forEach(c => c.classList.remove('active'));
-  if (type === 'all') {
-    document.getElementById('chip-all').classList.add('active');
-  } else {
-    const chip = document.querySelector(`[data-type="${type}"]`);
-    if (chip) chip.classList.add('active');
-  }
-  render();
+async function fetchUserInfo() {
+  try {
+    const res = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      document.getElementById('user-email').textContent = `👤 ${data.email}`;
+    }
+  } catch (e) {}
 }
+
+function showApp() {
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  fetchUserInfo();
+  fetchEvents();
+}
+
+function showLogin() {
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('app').classList.add('hidden');
+}
+
+function initGsi() {
+  if (typeof google === 'undefined' || !google.accounts) {
+    setTimeout(initGsi, 100);
+    return;
+  }
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPE + ' https://www.googleapis.com/auth/userinfo.email',
+    callback: (response) => {
+      if (response.access_token) {
+        accessToken = response.access_token;
+        sessionStorage.setItem('gcal_token', accessToken);
+        showApp();
+      }
+    }
+  });
+
+  const saved = sessionStorage.getItem('gcal_token');
+  if (saved) {
+    accessToken = saved;
+    showApp();
+  }
+}
+
+document.getElementById('signin-btn').addEventListener('click', () => {
+  if (tokenClient) tokenClient.requestAccessToken();
+});
+
+document.getElementById('signout-btn').addEventListener('click', () => {
+  sessionStorage.removeItem('gcal_token');
+  if (accessToken && google.accounts.oauth2) {
+    google.accounts.oauth2.revoke(accessToken, () => {});
+  }
+  accessToken = null;
+  allEvents = [];
+  showLogin();
+});
 
 document.querySelectorAll('.chip').forEach(chip => {
-  chip.addEventListener('click', () => setActive(chip.dataset.type));
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.chip, .all-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    currentType = chip.dataset.type;
+    render();
+  });
 });
-document.getElementById('chip-all').addEventListener('click', () => setActive('all'));
+document.getElementById('chip-all').addEventListener('click', () => {
+  document.querySelectorAll('.chip, .all-chip').forEach(c => c.classList.remove('active'));
+  document.getElementById('chip-all').classList.add('active');
+  currentType = 'all';
+  render();
+});
 
 document.getElementById('month-select').addEventListener('change', e => {
   currentMonth = e.target.value;
   render();
 });
 
-document.getElementById('reload').addEventListener('click', load);
+document.getElementById('reload').addEventListener('click', fetchEvents);
 
-load();
-setInterval(render, 60000);
+window.addEventListener('load', initGsi);
+setInterval(() => { if (accessToken) render(); }, 60000);
 </script>
 </body>
 </html>
