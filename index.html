@@ -1068,7 +1068,7 @@ const MOTIVATION_MESSAGES = [
         <span class="nav-label">求人票・メルマガ変換</span>
       </div>
 
-      <div class="nav-item" onclick="window.location.href='interviews.html'" style="cursor: pointer;">
+      <div class="nav-item" data-pane="interviews" onclick="switchPane('interviews')">
         <div class="nav-icon" style="background: #C8A9E8;">
           <svg viewBox="0 0 18 18" fill="none">
             <rect x="3" y="4" width="12" height="11" rx="1.5" stroke="#3A1A5C" stroke-width="1.8"/>
@@ -1312,6 +1312,17 @@ const MOTIVATION_MESSAGES = [
         </div>
       </div>
 
+      <!-- 面接予定ポータル(iframe埋め込み) -->
+      <div class="pane" id="pane-interviews">
+        <div class="external-area">
+          <div class="external-frame-wrap">
+            <iframe class="external-frame"
+              src="interviews.html"
+              frameborder="0"></iframe>
+          </div>
+        </div>
+      </div>
+
       <!-- 求人票変換ツール(iframe埋め込み) -->
       <div class="pane" id="pane-jobconv">
         <div class="external-area">
@@ -1472,6 +1483,11 @@ const MOTIVATION_MESSAGES = [
     } else if (name === 'jobconv') {
       bcTitle.textContent = '求人票・メルマガ変換ツール';
       bcPath.textContent = '/ メルマガ変換';
+      bcBadge.textContent = 'beta';
+      bcBadge.className = 'building-badge badge-beta';
+    } else if (name === 'interviews') {
+      bcTitle.textContent = '面接予定ポータル';
+      bcPath.textContent = '/ カレンダー連携';
       bcBadge.textContent = 'beta';
       bcBadge.className = 'building-badge badge-beta';
     } else if (name === 'slack') {
