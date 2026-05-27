@@ -69,23 +69,23 @@ const SHEET_CONFIG = {
   range: 'A1:AC184',  // 拡張: KPI(12-26行)+ 13期月別(67-81行)+ 14期売上(99-110行)
 };
 
-// ── URLキー(?user=xxx) → スプレッドシート上の行番号(1始まり、絶対行) ──
-// 例:山口さんは A13 (KPI), A68 (13期月別), A99 (14期売上)
+// ── URLキー(?user=xxx) → 表示名と該当行データ ──
+// displayName: シート上のA列に書かれている名前(完全一致で検索する)
 const USER_MAP = {
-  yamaguchi: { kpiRow: 13, monthly13Row: 68, period14Row:  99 },  // 山口
-  asami:     { kpiRow: 14, monthly13Row: 69, period14Row: 100 },  // 浅見
-  sato:      { kpiRow: 15, monthly13Row: 70, period14Row: 101 },  // 佐藤
-  machida:   { kpiRow: 16, monthly13Row: 71, period14Row: 102 },  // 町田
-  uemura:    { kpiRow: 17, monthly13Row: 72, period14Row: 103 },  // 上村
-  takeuchi:  { kpiRow: 18, monthly13Row: 73, period14Row: 104 },  // 竹内
-  izumi:     { kpiRow: 19, monthly13Row: 74, period14Row: 105 },  // 和泉
-  katoa:     { kpiRow: 20, monthly13Row: 75, period14Row: 106 },  // 加藤愛
-  adachi:    { kpiRow: 21, monthly13Row: 76, period14Row: 107 },  // 安達
-  koguchi:   { kpiRow: 22, monthly13Row: 77, period14Row: 108 },  // 古口
-  suzuki:    { kpiRow: 23, monthly13Row: 78, period14Row: 109 },  // 鈴木
-  katoy:     { kpiRow: 24, monthly13Row: 79, period14Row: 110 },  // 加藤優
-  yamada:    { kpiRow: 25, monthly13Row: 80, period14Row: null }, // 山田(14期データなし)
-  kase:      { kpiRow: 26, monthly13Row: 81, period14Row: null }, // 加瀬(14期データなし)
+  yamaguchi: { displayName: '山口' },
+  asami:     { displayName: '浅見' },
+  sato:      { displayName: '佐藤' },
+  machida:   { displayName: '町田' },
+  uemura:    { displayName: '上村' },
+  takeuchi:  { displayName: '竹内' },
+  izumi:     { displayName: '和泉' },
+  katoa:     { displayName: '加藤愛' },
+  adachi:    { displayName: '安達' },
+  koguchi:   { displayName: '古口' },
+  suzuki:    { displayName: '鈴木' },
+  katoy:     { displayName: '加藤優' },
+  yamada:    { displayName: '山田' },
+  kase:      { displayName: '加瀬' },
 };
 
 // 13期月別決定金額の列マッピング(月→列index、0始まり)
@@ -2110,51 +2110,48 @@ const MOTIVATION_MESSAGES = [
   // ── スプレッドシートを取得 ──
   async function fetchSheetAndRender() {
     try {
-      const url = `https://docs.google.com/spreadsheets/d/${SHEET_CONFIG.sheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_CONFIG.sheetName)}&range=${encodeURIComponent(SHEET_CONFIG.range)}`;
+      const url = `https://docs.google.com/spreadsheets/d/${SHEET_CONFIG.sheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_CONFIG.sheetName)}&range=${encodeURIComponent(SHEET_CONFIG.range)}&headers=0`;
       const res = await fetch(url);
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const text = await res.text();
-      // gviz APIは google.visualization.Query.setResponse(...) でラップされたJSONを返す
       const jsonMatch = text.match(/setResponse\(([\s\S]+)\);?\s*$/);
       if (!jsonMatch) throw new Error('レスポンスのパースに失敗');
       const data = JSON.parse(jsonMatch[1]);
       const rows = (data.table && data.table.rows) || [];
 
-      // 範囲が A1:AC184 になったので、rows[N] = スプレッドシート (N+1) 行目
       const mapEntry = USER_MAP[CURRENT_USER_KEY];
       if (!mapEntry) throw new Error('該当ユーザーが見つかりません');
 
-      // KPI行(例: 山口さんなら 13行目 → rows[12])
-      const userRow = rows[mapEntry.kpiRow - 1];
-      if (!userRow) throw new Error('KPI行が見つかりません(行' + mapEntry.kpiRow + ')');
+      // 期待する名前(yamaguchi → 山口 など)を取得するため、各セクションで「名前と一致する行」を探す
+      const targetName = mapEntry.displayName;
 
-      // セルからデータを抽出
-      const u = extractUserData(userRow);
+      // ① KPI行を探す(11行目ヘッダーの直下、12〜30行目あたり)
+      const kpiRow = findRowByName(rows, targetName, 11, 32, 0);
+      if (!kpiRow) throw new Error(`KPI行が見つかりません(${targetName})`);
+      const u = extractUserData(kpiRow);
 
-      // 13期月別決定金額:今月の決定額を取得
+      // ② 13期月別決定金額:今月の決定額を取得(60〜85行目あたり)
       const now = new Date();
       const currentMonth = now.getMonth() + 1; // 1〜12
       const monthCol = MONTH13_COL[currentMonth];
       let monthlyDecision = 0;
-      if (mapEntry.monthly13Row != null && monthCol != null) {
-        const monthlyRow = rows[mapEntry.monthly13Row - 1];
-        if (monthlyRow) {
-          monthlyDecision = extractCellNum(monthlyRow, monthCol);
-        }
+      const monthlyRow = findRowByName(rows, targetName, 60, 85, 0);
+      if (monthlyRow && monthCol != null) {
+        monthlyDecision = extractCellNum(monthlyRow, monthCol);
       }
       u.monthlyDecision = monthlyDecision;
       u.currentMonth = currentMonth;
 
-      // 14期売上(合計はZ列 = 列index 25)
+      // ③ 14期売上(合計はAA列 = 列index 26):95〜115行目あたりから名前で検索
       let period14Sales = 0;
-      if (mapEntry.period14Row != null) {
-        const period14Row = rows[mapEntry.period14Row - 1];
-        if (period14Row) {
-          period14Sales = extractCellNum(period14Row, 25);
-        }
+      let hasPeriod14 = false;
+      const period14Row = findRowByName(rows, targetName, 95, 115, 0);
+      if (period14Row) {
+        period14Sales = extractCellNum(period14Row, 26);
+        hasPeriod14 = true;
       }
       u.period14Sales = period14Sales;
-      u.hasPeriod14 = mapEntry.period14Row != null;
+      u.hasPeriod14 = hasPeriod14;
 
       CURRENT_USER = u;
       // 描画
@@ -2166,6 +2163,26 @@ const MOTIVATION_MESSAGES = [
       renderKPIError(e.message);
       renderCoach(); // フォールバックで WEEKLY_CONFIG のメッセージ
     }
+  }
+
+  // 指定された範囲内で、A列(0列目)が targetName と一致する行を探す
+  // startRow と endRow は スプレッドシート上の行番号(1始まり)
+  function findRowByName(rows, targetName, startRow, endRow, nameColIndex) {
+    if (!targetName) return null;
+    const target = String(targetName).trim();
+    // range=A1: から取得しているので rows[N] = (N+1)行目に対応
+    const startIdx = Math.max(0, startRow - 1);
+    const endIdx = Math.min(rows.length - 1, endRow - 1);
+    for (let i = startIdx; i <= endIdx; i++) {
+      const row = rows[i];
+      if (!row || !row.c) continue;
+      const cell = row.c[nameColIndex];
+      if (!cell) continue;
+      const val = cell.v != null ? String(cell.v).trim() : (cell.f != null ? String(cell.f).trim() : '');
+      // 「山口」と「古口」のような部分一致誤検出を避けるため、完全一致で照合
+      if (val === target) return row;
+    }
+    return null;
   }
 
   // セルから数値を取り出すヘルパー
