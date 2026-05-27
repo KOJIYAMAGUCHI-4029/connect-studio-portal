@@ -66,7 +66,7 @@ const WEEKLY_CONFIG = {
 const SHEET_CONFIG = {
   sheetId: '1iflyQpsbC_nCdsiJcycuQv5ynus8A0d_Omx2Mc010_Y',
   sheetName: 'シート1',
-  range: 'A1:AB212',  // 拡張: KPI + 13期月別 + 14期売上 + 常勤/定期内訳
+  range: 'A1:AC212',  // KPI + 13期月別 + 14期売上 + 常勤/定期内訳
 };
 
 // ── URLキー(?user=xxx) → 表示名と該当行データ ──
@@ -2168,6 +2168,35 @@ const MOTIVATION_MESSAGES = [
           kpiRow = m.row;
           break;
         }
+      }
+      // フォールバック1: I列の名前一致のみ(予算0でも可)
+      if (!kpiRow) {
+        for (const m of matchingRows) {
+          const colI = getCellValue(m.row, 8);
+          if (colI && String(colI).trim() === targetName) {
+            kpiRow = m.row;
+            break;
+          }
+        }
+      }
+      // フォールバック2: B列に予算が入っている最初の行(行頭付近のKPI)
+      if (!kpiRow) {
+        for (const m of matchingRows) {
+          const colB = extractCellNum(m.row, 1);
+          const colD_raw = getCellValue(m.row, 3);
+          // D列が達成率(%表記)なのもKPIの特徴
+          const cellD = m.row.c && m.row.c[3];
+          const isPercentD = cellD && cellD.f && String(cellD.f).includes('%');
+          if (colB > 0 && isPercentD) {
+            kpiRow = m.row;
+            break;
+          }
+        }
+      }
+      // フォールバック3: 最初に見つかった「山口」行を使う(最終手段)
+      if (!kpiRow && matchingRows.length > 0) {
+        console.warn(`KPI行の判定が曖昧。最初に見つかった行(${matchingRows[0].idx + 1}行目相当)を使用`);
+        kpiRow = matchingRows[0].row;
       }
       if (!kpiRow) throw new Error(`KPI行が見つかりません(${targetName})`);
       const u = extractUserData(kpiRow);
