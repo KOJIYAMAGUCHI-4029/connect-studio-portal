@@ -66,7 +66,7 @@ const WEEKLY_CONFIG = {
 const SHEET_CONFIG = {
   sheetId: '1iflyQpsbC_nCdsiJcycuQv5ynus8A0d_Omx2Mc010_Y',
   sheetName: 'シート1',
-  range: 'A1:AC184',  // 拡張: KPI(12-26行)+ 13期月別(67-81行)+ 14期売上(99-110行)
+  range: 'A1:AB212',  // 拡張: KPI + 13期月別 + 14期売上 + 常勤/定期内訳
 };
 
 // ── URLキー(?user=xxx) → 表示名と該当行データ ──
@@ -586,11 +586,12 @@ const MOTIVATION_MESSAGES = [
   /* === 個人別KPI(コンパクト6項目)=== */
   .kpi-mini-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 8px;
     margin-top: 10px;
   }
   .kpi-mini {
+    grid-column: span 3;  /* デフォルトは2分の1幅 */
     background: #FFFEFA;
     border: 0.5px solid #D3D1C7;
     border-radius: 6px;
@@ -613,7 +614,7 @@ const MOTIVATION_MESSAGES = [
   .kpi-mini.kpi-mini-accent {
     background: linear-gradient(135deg, #FFFEFA 0%, #FAEEDA 100%);
     border-color: #EF9F27;
-    grid-column: span 3;
+    grid-column: span 6;
   }
   .kpi-mini.kpi-mini-accent .kpi-mini-label {
     color: #854F0B;
@@ -622,6 +623,22 @@ const MOTIVATION_MESSAGES = [
   .kpi-mini.kpi-mini-accent .kpi-mini-value {
     font-size: 16px;
     color: #2C2C2A;
+  }
+
+  /* 常勤/定期で2列に分割表示する用 */
+  .kpi-mini.kpi-mini-split {
+    grid-column: span 3;
+  }
+  .kpi-mini-sub {
+    display: inline-block;
+    font-size: 9px;
+    background: #ECE8DE;
+    color: #5F5E5A;
+    padding: 1px 5px;
+    border-radius: 6px;
+    margin-left: 4px;
+    font-weight: 500;
+    vertical-align: middle;
   }
 
   /* === ロード中・エラー === */
@@ -2198,6 +2215,50 @@ const MOTIVATION_MESSAGES = [
       u.period14Sales = period14Sales;
       u.hasPeriod14 = hasPeriod14;
 
+      // ④ 常勤/定期内訳(行194〜208):面接数・決定数・決定率
+      // 特徴:C列(2)=面接数、D列(3)=決定数常勤、E列(4)=決定数定期、N列(13)=決定率常勤、O列(14)=決定率定期
+      // KPI行・13期月別・14期売上のいずれでもないことを確認
+      let breakdownRow = null;
+      for (const m of matchingRows) {
+        // 14期売上行の特徴(AB列に名前)を除外
+        const colAB = getCellValue(m.row, 27);
+        if (colAB && String(colAB).trim() === targetName) continue;
+        // KPI行の特徴(I列に名前)を除外
+        const colI = getCellValue(m.row, 8);
+        if (colI && String(colI).trim() === targetName) continue;
+        // 13期月別の特徴(N列に合計値)を除外:合計値があるが、O列は空
+        const colN = extractCellNum(m.row, 13);
+        const colO_raw = getCellValue(m.row, 14);
+        // 常勤/定期内訳の特徴:N列が「決定率(常勤)」=パーセント形式
+        //  →  cell.v が小数(0.0588など)、cell.f が "5.88%" になっている
+        const cellN = m.row.c[13];
+        const isPercentN = cellN && cellN.f && String(cellN.f).includes('%');
+        if (isPercentN && colO_raw != null) {
+          breakdownRow = m.row;
+          break;
+        }
+      }
+
+      // 内訳データ抽出(あれば新エリアの値を使う)
+      u.breakdown = {
+        interviews: 0,        // 面接数(C列)
+        decisionsFull: 0,     // 決定数 常勤(D列)
+        decisionsRegular: 0,  // 決定数 定期(E列)
+        rateFull: 0,          // 決定率 常勤(N列、%)
+        rateRegular: 0,       // 決定率 定期(O列、%)
+        hasData: false,
+      };
+      if (breakdownRow) {
+        u.breakdown = {
+          interviews: extractCellNum(breakdownRow, 2),
+          decisionsFull: extractCellNum(breakdownRow, 3),
+          decisionsRegular: extractCellNum(breakdownRow, 4),
+          rateFull: extractPercent(breakdownRow, 13),
+          rateRegular: extractPercent(breakdownRow, 14),
+          hasData: true,
+        };
+      }
+
       CURRENT_USER = u;
       // 描画
       renderUserAvatarFromName(u.name);
@@ -2216,6 +2277,25 @@ const MOTIVATION_MESSAGES = [
     const cell = row.c[colIndex];
     if (!cell) return null;
     return cell.v != null ? cell.v : (cell.f != null ? cell.f : null);
+  }
+
+  // パーセント値を取り出す:cell.v が小数(0.0588) or 整数(5.88)、cell.f が "5.88%" の場合に対応
+  // 戻り値は「パーセントの数値」(例: 5.88%なら 5.88)
+  function extractPercent(row, colIndex) {
+    if (!row || !row.c) return 0;
+    const cell = row.c[colIndex];
+    if (!cell) return 0;
+    // 表示文字(f)に%が含まれていれば、その数値部分を返す
+    if (cell.f && String(cell.f).includes('%')) {
+      const num = parseFloat(String(cell.f).replace(/[^\d.\-]/g, ''));
+      return isNaN(num) ? 0 : num;
+    }
+    // それ以外は v を使う(0〜1の小数なら×100、それ以上ならそのまま)
+    const v = cell.v;
+    if (v == null || v === '') return 0;
+    const n = typeof v === 'number' ? v : parseFloat(String(v));
+    if (isNaN(n)) return 0;
+    return n <= 1 && n >= 0 ? n * 100 : n;
   }
 
   // 指定された範囲内で、A列(0列目)が targetName と一致する行を探す(後方互換用・現在未使用)
@@ -2298,7 +2378,6 @@ const MOTIVATION_MESSAGES = [
     const c = document.getElementById('kpi-container');
     if (!c) return;
     const ratePct = normalizeRateToPercent(u.rate);
-    const decRatePct = normalizeRateToPercent(u.decisionRate);
     const fmt = (n) => {
       if (n == null || isNaN(n)) return '0';
       return Math.round(n).toLocaleString('ja-JP');
@@ -2307,6 +2386,14 @@ const MOTIVATION_MESSAGES = [
     const period14Display = u.hasPeriod14
       ? `${fmt(u.period14Sales)}<span class="unit">円</span>`
       : `<span style="font-size: 11px; color: #888780;">— 該当データなし</span>`;
+
+    // 常勤/定期内訳(新エリアから取得した値を優先)
+    const bd = u.breakdown || {};
+    const interviewsNum = bd.hasData ? bd.interviews : (u.interviews || 0);
+    const decFull = bd.decisionsFull || 0;
+    const decRegular = bd.decisionsRegular || 0;
+    const rateFull = bd.rateFull || 0;
+    const rateRegular = bd.rateRegular || 0;
 
     c.innerHTML = `
       <div class="kpi-section-header">
@@ -2333,18 +2420,30 @@ const MOTIVATION_MESSAGES = [
           <div class="kpi-mini-label">売上目標</div>
           <div class="kpi-mini-value">${fmt(u.budget)}<span class="unit">円</span></div>
         </div>
-        <div class="kpi-mini">
+
+        <div class="kpi-mini" style="grid-column: span 6;">
           <div class="kpi-mini-label">面接数</div>
-          <div class="kpi-mini-value">${fmt(u.interviews)}<span class="unit">件</span></div>
+          <div class="kpi-mini-value">${fmt(interviewsNum)}<span class="unit">件</span></div>
         </div>
-        <div class="kpi-mini">
-          <div class="kpi-mini-label">決定数</div>
-          <div class="kpi-mini-value">${fmt(u.decisions)}<span class="unit">件</span></div>
+
+        <div class="kpi-mini kpi-mini-split">
+          <div class="kpi-mini-label">決定数 <span class="kpi-mini-sub">常勤</span></div>
+          <div class="kpi-mini-value">${fmt(decFull)}<span class="unit">件</span></div>
         </div>
-        <div class="kpi-mini" style="grid-column: span 2;">
-          <div class="kpi-mini-label">決定率</div>
-          <div class="kpi-mini-value">${decRatePct.toFixed(1)}<span class="unit">%</span></div>
+        <div class="kpi-mini kpi-mini-split">
+          <div class="kpi-mini-label">決定数 <span class="kpi-mini-sub">定期</span></div>
+          <div class="kpi-mini-value">${fmt(decRegular)}<span class="unit">件</span></div>
         </div>
+
+        <div class="kpi-mini kpi-mini-split">
+          <div class="kpi-mini-label">決定率 <span class="kpi-mini-sub">常勤</span></div>
+          <div class="kpi-mini-value">${rateFull.toFixed(1)}<span class="unit">%</span></div>
+        </div>
+        <div class="kpi-mini kpi-mini-split">
+          <div class="kpi-mini-label">決定率 <span class="kpi-mini-sub">定期</span></div>
+          <div class="kpi-mini-value">${rateRegular.toFixed(1)}<span class="unit">%</span></div>
+        </div>
+
         <div class="kpi-mini kpi-mini-accent">
           <div class="kpi-mini-label">${monthLabel}決定金額</div>
           <div class="kpi-mini-value">${fmt(u.monthlyDecision)}<span class="unit">円</span></div>
@@ -2610,7 +2709,6 @@ const MOTIVATION_MESSAGES = [
       const u = CURRENT_USER;
       const fmt = (n) => (n == null || isNaN(n)) ? '0' : Math.round(n).toLocaleString('ja-JP');
       const ratePct = normalizeRateToPercent(u.rate);
-      const decRatePct = normalizeRateToPercent(u.decisionRate);
       kpiLines.push(`売上達成率: ${ratePct.toFixed(1)}%`);
       kpiLines.push(`今期売上: ${fmt(u.sales)}円`);
       kpiLines.push(`売上目標: ${fmt(u.budget)}円`);
@@ -2619,8 +2717,17 @@ const MOTIVATION_MESSAGES = [
       }
       kpiLines.push(`常勤売上: ${fmt(u.fullSales)}円 / 非常勤売上: ${fmt(u.partSales)}円`);
       kpiLines.push(`常勤問合せ数: ${u.fullInq}件 / 非常勤問合せ数: ${u.partInq}件`);
-      kpiLines.push(`面接数: ${u.interviews}件 / 決定数: ${u.decisions}件`);
-      kpiLines.push(`決定率: ${decRatePct.toFixed(1)}%`);
+      // 面接数・決定数・決定率(新エリアの常勤/定期内訳を優先)
+      const bd = u.breakdown || {};
+      if (bd.hasData) {
+        kpiLines.push(`面接数: ${bd.interviews}件`);
+        kpiLines.push(`決定数: 常勤 ${bd.decisionsFull}件 / 定期 ${bd.decisionsRegular}件`);
+        kpiLines.push(`決定率: 常勤 ${bd.rateFull.toFixed(1)}% / 定期 ${bd.rateRegular.toFixed(1)}%`);
+      } else {
+        kpiLines.push(`面接数: ${u.interviews}件 / 決定数: ${u.decisions}件`);
+        const decRatePct = normalizeRateToPercent(u.decisionRate);
+        kpiLines.push(`決定率: ${decRatePct.toFixed(1)}%`);
+      }
       if (u.monthlyDecision != null) {
         kpiLines.push(`今月(${u.currentMonth}月)の決定金額: ${fmt(u.monthlyDecision)}円`);
       }
