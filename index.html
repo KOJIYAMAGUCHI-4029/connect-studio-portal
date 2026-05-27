@@ -2218,13 +2218,15 @@ const MOTIVATION_MESSAGES = [
       const u = extractUserData(kpiRow);
 
       // ② 13期月別決定金額行を特定
-      // 特徴:N列(13)に「合計値」(数千以上の金額、パーセントではない)があり、
-      //       I列に名前がない(KPI行ではない)、AB列にも名前がない(14期売上ではない)
+      // 戦略:対象月の列に「金額らしい数値」が入っている行を探す
+      // 山口で言えば、5月→G列(index 6) に259,200のような金額がある行
+      // KPI行や14期売上行とは構造が異なるので、複数条件で絞り込む
       const now = new Date();
       const currentMonth = now.getMonth() + 1;
       const monthCol = MONTH13_COL[currentMonth];
       let monthlyDecision = 0;
       let monthlyRow = null;
+
       for (const m of matchingRows) {
         // KPI行除外:I列に名前
         const colI = getCellValue(m.row, 8);
@@ -2232,23 +2234,38 @@ const MOTIVATION_MESSAGES = [
         // 14期売上除外:AB列に名前
         const colAB = getCellValue(m.row, 27);
         if (colAB && String(colAB).trim() === targetName) continue;
-        // 非常勤データ・常勤データ除外:N列がパーセント形式は対象外
+        // 非常勤データ・常勤データ除外:N列がパーセント形式
         const cellN = m.row.c && m.row.c[13];
         const isPercentN = cellN && cellN.f && String(cellN.f).includes('%');
         if (isPercentN) continue;
-        // 13期月別の確実な特徴:N列に金額(1000以上)があり、かつB列にも金額がある
-        const colN = extractCellNum(m.row, 13);
+
+        // 13期月別の特徴:B列(12月)とC列(1月)の両方に金額がある(年初は必ず売上があるはず)
+        // または、対象月の列(monthCol)に金額がある
         const colB = extractCellNum(m.row, 1);
-        if (colN >= 1000 && colB > 0) {
+        const colC = extractCellNum(m.row, 2);
+        const colMonth = monthCol != null ? extractCellNum(m.row, monthCol) : 0;
+
+        // 月別行と判定する条件:
+        // (a) B列(12月)に金額があり、C列(1月)にも金額がある → 通年データの特徴
+        // (b) または、対象月に金額がある(モジ未満も含む)
+        if ((colB > 0 && colC > 0) || colMonth > 0) {
           monthlyRow = m.row;
           break;
         }
       }
+
       if (monthlyRow && monthCol != null) {
         monthlyDecision = extractCellNum(monthlyRow, monthCol);
       }
       u.monthlyDecision = monthlyDecision;
       u.currentMonth = currentMonth;
+
+      // デバッグ用ログ(問題切り分けに使える)
+      if (monthlyDecision === 0) {
+        console.warn(`[月別決定金額] ${targetName}さんの${currentMonth}月の値が0です。検出された月別行:`,
+          monthlyRow ? '見つかったが値が0' : '行自体が見つからない',
+          '— 対象列index:', monthCol);
+      }
 
       // ③ 14期売上行を特定:AA列(index 26)に合計があり、AB列(index 27)にも名前がある
       let period14Sales = 0;
