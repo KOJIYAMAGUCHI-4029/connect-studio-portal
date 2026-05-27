@@ -731,6 +731,84 @@ const MOTIVATION_MESSAGES = [
     color: #2C2C2A;
   }
 
+  /* === 今日のアドバイス(複数) === */
+  .advice-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .advice-title {
+    font-size: 11px; color: #854F0B;
+    letter-spacing: 0.05em;
+    display: flex; align-items: center; gap: 5px;
+    font-weight: 500;
+  }
+  .advice-refresh {
+    font-size: 10px;
+    padding: 4px 10px;
+    border: 0.5px solid #BA7517;
+    background: #FFFEFA;
+    color: #854F0B;
+    border-radius: 12px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .advice-refresh:hover:not(:disabled) {
+    background: #FAEEDA;
+  }
+  .advice-refresh:disabled {
+    opacity: 0.5; cursor: wait;
+  }
+  .advice-refresh-icon {
+    display: inline-block;
+    transition: transform 0.5s;
+  }
+  .advice-refresh.loading .advice-refresh-icon {
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .advice-list {
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .advice-item {
+    padding: 10px 12px;
+    background: linear-gradient(135deg, #FFFEFA 0%, #FAEEDA 100%);
+    border: 0.5px solid #EF9F27;
+    border-radius: 8px;
+  }
+  .advice-item-label {
+    font-size: 9px; color: #854F0B;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+  .advice-item-text {
+    font-size: 11px; line-height: 1.65;
+    color: #2C2C2A;
+  }
+  .advice-empty {
+    padding: 14px 12px;
+    background: #FAF7F2;
+    border: 0.5px dashed #B4B2A9;
+    border-radius: 8px;
+    font-size: 11px; line-height: 1.6;
+    color: #5F5E5A;
+    text-align: center;
+  }
+  .advice-empty strong { color: #2C2C2A; }
+  .advice-error {
+    padding: 10px 12px;
+    background: #FCEBEB;
+    border: 0.5px solid #E5A8A8;
+    border-radius: 8px;
+    font-size: 11px; line-height: 1.6;
+    color: #4A1B0C;
+  }
+
   /* === 今週のフォーカス === */
   .focus-list { display: flex; flex-direction: column; gap: 8px; }
   .focus-item {
@@ -1274,8 +1352,8 @@ const MOTIVATION_MESSAGES = [
       <!-- ⑤ 本日の予定(個人カレンダーから取得) -->
       <div id="schedule-container"></div>
 
-      <!-- ⑥ 工房ログ -->
-      <div id="log-container"></div>
+      <!-- ⑥ 工房ログ / チームの動き(一旦非表示・個人特化のため) -->
+      <!-- <div id="log-container"></div> -->
     </div>
 
   </div>
@@ -1988,15 +2066,7 @@ const MOTIVATION_MESSAGES = [
       `;
     }
     // コーチエリアにも控えめなメッセージ
-    const cc = document.getElementById('coach-container');
-    if (cc) {
-      cc.innerHTML = `
-        <div class="coach-box">
-          <p class="coach-eyebrow">✨ TODAY'S COACH</p>
-          <p class="coach-text" style="color: #888780;">ユーザーIDが指定されると、あなた専用のメッセージが表示されます。</p>
-        </div>
-      `;
-    }
+    renderAdviceShell({ state: 'no-user' });
     // アバターは「?」
     const av = document.getElementById('user-avatar');
     if (av) { av.textContent = '?'; av.title = 'ユーザー未指定'; }
@@ -2008,8 +2078,7 @@ const MOTIVATION_MESSAGES = [
   }
 
   function renderCoachLoading() {
-    const c = document.getElementById('coach-container');
-    if (c) c.innerHTML = '<div class="coach-box"><p class="coach-eyebrow">✨ TODAY\'S COACH</p><p class="coach-text" style="color: #888780;">あなた専用のメッセージを準備中...</p></div>';
+    renderAdviceShell({ state: 'initial' });
   }
 
   function renderKPIError(msg) {
@@ -2150,25 +2219,8 @@ const MOTIVATION_MESSAGES = [
 
   // コーチメッセージ(達成率に応じて自動切替)
   function renderCoachFromAchievement(u) {
-    const c = document.getElementById('coach-container');
-    if (!c) return;
-    const pct = normalizeRateToPercent(u.rate);
-    let msg;
-    if (pct < 50) {
-      msg = '目標まで折り返し前。今週の行動量を見直しましょう。商談数を増やすことが最優先です。';
-    } else if (pct < 80) {
-      msg = '順調に進んでいます。残り目標まであと少し。今週は成約確度の高い案件に集中を。';
-    } else if (pct <= 100) {
-      msg = '目標達成まであと一息! このペースを維持して最後まで駆け抜けましょう。';
-    } else {
-      msg = '目標達成おめでとうございます! 来期の仕込みを始めるタイミングです。';
-    }
-    c.innerHTML = `
-      <div class="coach-box">
-        <p class="coach-eyebrow">✨ TODAY'S COACH</p>
-        <p class="coach-text">${escapeHtml(msg)}</p>
-      </div>
-    `;
+    // 個人別データが取れたら、初期状態(更新ボタンで生成可能)を表示
+    renderAdviceShell({ state: 'initial' });
   }
 
   // === 旧:WEEKLY_CONFIG由来のユーザーアバター(URLなし時のフォールバック用) ===
@@ -2238,16 +2290,196 @@ const MOTIVATION_MESSAGES = [
     `;
   }
 
-  // ② AIコーチ
+  // ② 今日のアドバイス(AI生成)
   function renderCoach() {
+    renderAdviceShell({ state: 'initial' });
+  }
+
+  // ── アドバイスUIのレンダラー(状態別) ──
+  // state: 'initial' | 'loading' | 'loaded' | 'error' | 'no-user'
+  function renderAdviceShell({ state, advices, errorMsg }) {
     const c = document.getElementById('coach-container');
     if (!c) return;
-    c.innerHTML = `
-      <div class="coach-box">
-        <p class="coach-eyebrow">✨ TODAY'S COACH</p>
-        <p class="coach-text">${escapeHtml(WEEKLY_CONFIG.coachMessage || '')}</p>
+
+    const headerHtml = `
+      <div class="advice-header">
+        <p class="advice-title">✨ 今日のアドバイス</p>
+        <button class="advice-refresh ${state === 'loading' ? 'loading' : ''}"
+                onclick="refreshAdvice()"
+                ${state === 'loading' ? 'disabled' : ''}>
+          <span class="advice-refresh-icon">🔄</span>
+          <span>${state === 'loading' ? '生成中…' : '更新'}</span>
+        </button>
       </div>
     `;
+
+    let bodyHtml = '';
+    if (state === 'no-user') {
+      bodyHtml = `
+        <div class="advice-empty">
+          ユーザーIDが指定されると、<br><strong>あなた専用</strong>のアドバイスが表示されます。
+        </div>
+      `;
+    } else if (state === 'initial') {
+      bodyHtml = `
+        <div class="advice-empty">
+          右上の <strong>「🔄 更新」</strong> を押すと、<br>
+          今のKPI・曜日・時刻をもとに<br>
+          <strong>今日のアドバイスを3つ</strong>生成します。
+        </div>
+      `;
+    } else if (state === 'loading') {
+      bodyHtml = `
+        <div class="advice-empty">
+          AIが今日のアドバイスを考えています…
+        </div>
+      `;
+    } else if (state === 'error') {
+      bodyHtml = `
+        <div class="advice-error">
+          ⚠ 生成に失敗しました<br>
+          <span style="font-size: 10px;">${escapeHtml(errorMsg || '')}</span>
+        </div>
+      `;
+    } else if (state === 'loaded' && Array.isArray(advices)) {
+      bodyHtml = `
+        <div class="advice-list">
+          ${advices.map(a => `
+            <div class="advice-item">
+              <p class="advice-item-label">${escapeHtml(a.label || '')}</p>
+              <p class="advice-item-text">${escapeHtml(a.text || '')}</p>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    c.innerHTML = headerHtml + bodyHtml;
+  }
+
+  // ── 更新ボタンから呼ばれる:Claude API で3つのアドバイスを生成 ──
+  async function refreshAdvice() {
+    const apiKey = (typeof getApiKey === 'function') ? getApiKey() : '';
+    if (!apiKey) {
+      renderAdviceShell({
+        state: 'error',
+        errorMsg: 'Claude APIキーが未設定です。右上の ⚙ 設定 から登録してください。',
+      });
+      return;
+    }
+
+    renderAdviceShell({ state: 'loading' });
+
+    try {
+      const advices = await generateAdvices(apiKey);
+      renderAdviceShell({ state: 'loaded', advices });
+    } catch (e) {
+      console.error('Advice generation error:', e);
+      renderAdviceShell({ state: 'error', errorMsg: e.message || String(e) });
+    }
+  }
+
+  // ── Claude API を呼んで 3 つのアドバイスを JSON で受け取る ──
+  async function generateAdvices(apiKey) {
+    // 文脈情報を組み立て
+    const k = WEEKLY_CONFIG.kpi || {};
+    const talks = k.talks || { current: 0, target: 0 };
+    const contracts = k.contracts || { current: 0, target: 0 };
+    const sales = k.sales || { current: 0, target: 0 };
+    const userName = (CURRENT_USER && CURRENT_USER.name) || WEEKLY_CONFIG.userName || '担当者';
+
+    const now = new Date();
+    const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+    const dateStr = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()}(${weekdays[now.getDay()]})`;
+    const hour = now.getHours();
+    let timeOfDay = '朝';
+    if (hour >= 12 && hour < 17) timeOfDay = '昼';
+    else if (hour >= 17) timeOfDay = '夕方';
+
+    // 個人データがあれば優先、なければ WEEKLY_CONFIG
+    let achievementRate = '';
+    if (CURRENT_USER && typeof CURRENT_USER.rate !== 'undefined') {
+      achievementRate = `売上達成率 ${normalizeRateToPercent(CURRENT_USER.rate).toFixed(1)}%`;
+    } else if (sales.target > 0) {
+      achievementRate = `売上達成率 ${Math.round((sales.current / sales.target) * 100)}%`;
+    }
+
+    const ctx = [
+      `担当者: ${userName}さん`,
+      `日付: ${dateStr} / 時間帯: ${timeOfDay}`,
+      `商談数: ${talks.current}/${talks.target}`,
+      `成約数: ${contracts.current}/${contracts.target}`,
+      `売上: ${sales.current}/${sales.target} 万円`,
+      achievementRate,
+      `前月比: ${k.momChange || '不明'}`,
+    ].filter(Boolean).join('\n');
+
+    const systemPrompt = `あなたはCONNECT Studioの専属AIコーチです。営業担当者を支える、温かくて具体的なパートナーです。
+
+担当者の今の状況を踏まえて、本日のアドバイスを3つ生成してください。それぞれ:
+1. 「動き方」— 今日この時間帯にどう動くか(具体的な行動の提案)
+2. 「重点」— 何に集中するか(優先順位の整理)
+3. 「振り返り」— 今期/今までを踏まえた気づきや励まし
+
+各アドバイスは70〜100文字程度、です・ます調、押しつけがましくない、温度のある表現で。
+必ず以下のJSON形式のみで返答してください(前後の説明文は一切不要):
+
+{"advices":[{"label":"動き方","text":"..."},{"label":"重点","text":"..."},{"label":"振り返り","text":"..."}]}`;
+
+    const userPrompt = `今の状況:\n${ctx}\n\n上記を踏まえて、今日のアドバイス3つをJSONで生成してください。`;
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: (typeof CLAUDE_MODEL !== 'undefined' ? CLAUDE_MODEL : 'claude-sonnet-4-5'),
+        max_tokens: 1024,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }],
+      }),
+    });
+
+    if (!res.ok) {
+      let errMsg = 'HTTP ' + res.status;
+      try {
+        const err = await res.json();
+        if (err && err.error && err.error.message) errMsg += ': ' + err.error.message;
+      } catch {}
+      throw new Error(errMsg);
+    }
+
+    const data = await res.json();
+    const text = (data.content || [])
+      .filter(b => b.type === 'text')
+      .map(b => b.text).join('').trim();
+
+    // JSON部分を抽出(```json ... ``` で包まれているケースも考慮)
+    let jsonStr = text;
+    const codeBlock = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (codeBlock) jsonStr = codeBlock[1];
+    const firstBrace = jsonStr.indexOf('{');
+    const lastBrace = jsonStr.lastIndexOf('}');
+    if (firstBrace >= 0 && lastBrace > firstBrace) {
+      jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonStr);
+    } catch (e) {
+      throw new Error('AIの応答をJSONとして解析できませんでした');
+    }
+
+    if (!parsed || !Array.isArray(parsed.advices) || parsed.advices.length === 0) {
+      throw new Error('AIの応答形式が予期したものと違います');
+    }
+
+    return parsed.advices.slice(0, 3);
   }
 
   // ③ 今週のフォーカス
