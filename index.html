@@ -66,26 +66,33 @@ const WEEKLY_CONFIG = {
 const SHEET_CONFIG = {
   sheetId: '1iflyQpsbC_nCdsiJcycuQv5ynus8A0d_Omx2Mc010_Y',
   sheetName: 'シート1',
-  range: 'A11:S26',  // 11行目=ヘッダー、12〜25行目=個人データ
+  range: 'A1:AC184',  // 拡張: KPI(12-26行)+ 13期月別(67-81行)+ 14期売上(99-110行)
 };
 
-// ── URLキー(?user=xxx) → スプレッドシートの行番号(0始まり、データ部分のみ)──
-//   行番号 = スプレッドシート上の行 - 12  (12行目が0番目)
+// ── URLキー(?user=xxx) → スプレッドシート上の行番号(1始まり、絶対行) ──
+// 例:山口さんは A13 (KPI), A68 (13期月別), A99 (14期売上)
 const USER_MAP = {
-  yamaguchi: 0,   // 山口
-  asami:     1,   // 浅見
-  sato:      2,   // 佐藤
-  machida:   3,   // 町田
-  uemura:    4,   // 上村
-  takeuchi:  5,   // 竹内
-  izumi:     6,   // 和泉
-  katoa:     7,   // 加藤愛
-  adachi:    8,   // 安達
-  koguchi:   9,   // 古口
-  suzuki:    10,  // 鈴木
-  katoy:     11,  // 加藤優
-  yamada:    12,  // 山田
-  kase:      13,  // 加瀬
+  yamaguchi: { kpiRow: 13, monthly13Row: 68, period14Row:  99 },  // 山口
+  asami:     { kpiRow: 14, monthly13Row: 69, period14Row: 100 },  // 浅見
+  sato:      { kpiRow: 15, monthly13Row: 70, period14Row: 101 },  // 佐藤
+  machida:   { kpiRow: 16, monthly13Row: 71, period14Row: 102 },  // 町田
+  uemura:    { kpiRow: 17, monthly13Row: 72, period14Row: 103 },  // 上村
+  takeuchi:  { kpiRow: 18, monthly13Row: 73, period14Row: 104 },  // 竹内
+  izumi:     { kpiRow: 19, monthly13Row: 74, period14Row: 105 },  // 和泉
+  katoa:     { kpiRow: 20, monthly13Row: 75, period14Row: 106 },  // 加藤愛
+  adachi:    { kpiRow: 21, monthly13Row: 76, period14Row: 107 },  // 安達
+  koguchi:   { kpiRow: 22, monthly13Row: 77, period14Row: 108 },  // 古口
+  suzuki:    { kpiRow: 23, monthly13Row: 78, period14Row: 109 },  // 鈴木
+  katoy:     { kpiRow: 24, monthly13Row: 79, period14Row: 110 },  // 加藤優
+  yamada:    { kpiRow: 25, monthly13Row: 80, period14Row: null }, // 山田(14期データなし)
+  kase:      { kpiRow: 26, monthly13Row: 81, period14Row: null }, // 加瀬(14期データなし)
+};
+
+// 13期月別決定金額の列マッピング(月→列index、0始まり)
+// 行67の構成: A=13期 | B=12月 | C=1月 | D=2月 | E=3月 | F=4月 | G=5月 | H=6月 | ... | N=合計
+// 13期の会計年度は 2025/12 〜 2026/11 なので、月→列のマップを作る
+const MONTH13_COL = {
+  12: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 7, 7: 8, 8: 9, 9: 10, 10: 11, 11: 12,
 };
 
 // ── ユーザー別 Google カレンダーID ──
@@ -601,6 +608,20 @@ const MOTIVATION_MESSAGES = [
   .kpi-mini-value .unit {
     font-size: 10px; color: #888780;
     font-weight: 400; margin-left: 2px;
+  }
+  /* アクセント付き(今月決定金額・14期売上など、注目度の高い指標) */
+  .kpi-mini.kpi-mini-accent {
+    background: linear-gradient(135deg, #FFFEFA 0%, #FAEEDA 100%);
+    border-color: #EF9F27;
+    grid-column: span 3;
+  }
+  .kpi-mini.kpi-mini-accent .kpi-mini-label {
+    color: #854F0B;
+    font-weight: 500;
+  }
+  .kpi-mini.kpi-mini-accent .kpi-mini-value {
+    font-size: 16px;
+    color: #2C2C2A;
   }
 
   /* === ロード中・エラー === */
@@ -1858,8 +1879,8 @@ const MOTIVATION_MESSAGES = [
       // URL未指定 / 不明ユーザー → 案内表示
       renderUserRequired();
     }
-    // チームログはユーザー指定なしでも描画(全員のデータを引っ張る)
-    fetchAllUsersAndRenderTeamLog();
+    // チームログはセクション削除済みのため呼び出し停止
+    // fetchAllUsersAndRenderTeamLog();
   }
 
   // ─────── モチベーションメッセージ(日付シード) ───────
@@ -2098,13 +2119,43 @@ const MOTIVATION_MESSAGES = [
       if (!jsonMatch) throw new Error('レスポンスのパースに失敗');
       const data = JSON.parse(jsonMatch[1]);
       const rows = (data.table && data.table.rows) || [];
-      // rows[0]はヘッダー行(A11)、rows[1]以降が個人データ(A12〜)
-      // USER_MAPのインデックスは「データ部分の0始まり」なので rows[CURRENT_USER_KEY+1]
-      const userRowIndex = USER_MAP[CURRENT_USER_KEY] + 1;
-      const userRow = rows[userRowIndex];
-      if (!userRow) throw new Error('該当ユーザーの行が見つかりません');
+
+      // 範囲が A1:AC184 になったので、rows[N] = スプレッドシート (N+1) 行目
+      const mapEntry = USER_MAP[CURRENT_USER_KEY];
+      if (!mapEntry) throw new Error('該当ユーザーが見つかりません');
+
+      // KPI行(例: 山口さんなら 13行目 → rows[12])
+      const userRow = rows[mapEntry.kpiRow - 1];
+      if (!userRow) throw new Error('KPI行が見つかりません(行' + mapEntry.kpiRow + ')');
+
       // セルからデータを抽出
       const u = extractUserData(userRow);
+
+      // 13期月別決定金額:今月の決定額を取得
+      const now = new Date();
+      const currentMonth = now.getMonth() + 1; // 1〜12
+      const monthCol = MONTH13_COL[currentMonth];
+      let monthlyDecision = 0;
+      if (mapEntry.monthly13Row != null && monthCol != null) {
+        const monthlyRow = rows[mapEntry.monthly13Row - 1];
+        if (monthlyRow) {
+          monthlyDecision = extractCellNum(monthlyRow, monthCol);
+        }
+      }
+      u.monthlyDecision = monthlyDecision;
+      u.currentMonth = currentMonth;
+
+      // 14期売上(合計はZ列 = 列index 25)
+      let period14Sales = 0;
+      if (mapEntry.period14Row != null) {
+        const period14Row = rows[mapEntry.period14Row - 1];
+        if (period14Row) {
+          period14Sales = extractCellNum(period14Row, 25);
+        }
+      }
+      u.period14Sales = period14Sales;
+      u.hasPeriod14 = mapEntry.period14Row != null;
+
       CURRENT_USER = u;
       // 描画
       renderUserAvatarFromName(u.name);
@@ -2115,6 +2166,17 @@ const MOTIVATION_MESSAGES = [
       renderKPIError(e.message);
       renderCoach(); // フォールバックで WEEKLY_CONFIG のメッセージ
     }
+  }
+
+  // セルから数値を取り出すヘルパー
+  function extractCellNum(row, colIndex) {
+    if (!row || !row.c) return 0;
+    const cell = row.c[colIndex];
+    if (!cell) return 0;
+    const v = cell.v != null ? cell.v : (cell.f != null ? cell.f : null);
+    if (v == null || v === '') return 0;
+    const n = typeof v === 'number' ? v : parseFloat(String(v).replace(/[^\d.\-]/g, ''));
+    return isNaN(n) ? 0 : n;
   }
 
   // 行データから個人情報を取り出す
@@ -2172,9 +2234,12 @@ const MOTIVATION_MESSAGES = [
     const decRatePct = normalizeRateToPercent(u.decisionRate);
     const fmt = (n) => {
       if (n == null || isNaN(n)) return '0';
-      // 1万以上は万単位に丸める
       return Math.round(n).toLocaleString('ja-JP');
     };
+    const monthLabel = (u.currentMonth || (new Date().getMonth() + 1)) + '月';
+    const period14Display = u.hasPeriod14
+      ? `${fmt(u.period14Sales)}<span class="unit">円</span>`
+      : `<span style="font-size: 11px; color: #888780;">— 該当データなし</span>`;
 
     c.innerHTML = `
       <div class="kpi-section-header">
@@ -2212,6 +2277,14 @@ const MOTIVATION_MESSAGES = [
         <div class="kpi-mini" style="grid-column: span 2;">
           <div class="kpi-mini-label">決定率</div>
           <div class="kpi-mini-value">${decRatePct.toFixed(1)}<span class="unit">%</span></div>
+        </div>
+        <div class="kpi-mini kpi-mini-accent">
+          <div class="kpi-mini-label">${monthLabel}決定金額</div>
+          <div class="kpi-mini-value">${fmt(u.monthlyDecision)}<span class="unit">円</span></div>
+        </div>
+        <div class="kpi-mini kpi-mini-accent">
+          <div class="kpi-mini-label">14期売上</div>
+          <div class="kpi-mini-value">${period14Display}</div>
         </div>
       </div>
     `;
