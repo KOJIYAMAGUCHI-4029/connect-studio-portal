@@ -1407,7 +1407,8 @@ const MOTIVATION_MESSAGES = [
       { role: 'assistant', text: 'おはようございます、山口さん。<br>今日もCONNECT Studioへようこそ。何かお手伝いできることはありますか?' }
     ],
     files: [],
-    fileCounter: 0
+    fileCounter: 0,
+    todayEvents: []
   };
 
   let currentPane = 'claude';
@@ -1917,9 +1918,11 @@ const MOTIVATION_MESSAGES = [
     `;
 
     fetchTodayEvents(calendarId).then(events => {
+      state.todayEvents = events || [];
       renderScheduleEvents(c, events, !!personalCal);
     }).catch(err => {
       console.error('Calendar fetch error:', err);
+      state.todayEvents = [];
       c.innerHTML = `
         <p class="panel-title">本日のToDo</p>
         <div class="schedule-empty">読み込めませんでした<br><span style="font-size: 10px; color: #A32D2D;">${escapeHtml(err.message || '')}</span></div>
@@ -2122,33 +2125,75 @@ const MOTIVATION_MESSAGES = [
       const mapEntry = USER_MAP[CURRENT_USER_KEY];
       if (!mapEntry) throw new Error('該当ユーザーが見つかりません');
 
-      // 期待する名前(yamaguchi → 山口 など)を取得するため、各セクションで「名前と一致する行」を探す
       const targetName = mapEntry.displayName;
 
-      // ① KPI行を探す(11行目ヘッダーの直下、12〜30行目あたり)
-      const kpiRow = findRowByName(rows, targetName, 11, 32, 0);
+      // 名前列(A列=index 0)が targetName と一致する全ての行を集める
+      const matchingRows = [];
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || !row.c) continue;
+        const cell = row.c[0];
+        if (!cell) continue;
+        const val = cell.v != null ? String(cell.v).trim() : (cell.f != null ? String(cell.f).trim() : '');
+        if (val === targetName) {
+          matchingRows.push({ idx: i, row });
+        }
+      }
+
+      if (matchingRows.length === 0) throw new Error(`「${targetName}」の行が見つかりません`);
+
+      // ① KPI行を特定:I列(index 8)にも同じ名前があり、かつB列(index 1)に予算がある行
+      let kpiRow = null;
+      for (const m of matchingRows) {
+        const colI = getCellValue(m.row, 8);
+        const colB = extractCellNum(m.row, 1);
+        if (colI && String(colI).trim() === targetName && colB > 0) {
+          kpiRow = m.row;
+          break;
+        }
+      }
       if (!kpiRow) throw new Error(`KPI行が見つかりません(${targetName})`);
       const u = extractUserData(kpiRow);
 
-      // ② 13期月別決定金額:今月の決定額を取得(60〜85行目あたり)
+      // ② 13期月別決定金額行を特定:N列(index 13)に「合計」があり、かつI列が空 or 名前と違う
+      // 13期月別: A=名前, B〜M=各月, N=合計
       const now = new Date();
-      const currentMonth = now.getMonth() + 1; // 1〜12
+      const currentMonth = now.getMonth() + 1;
       const monthCol = MONTH13_COL[currentMonth];
       let monthlyDecision = 0;
-      const monthlyRow = findRowByName(rows, targetName, 60, 85, 0);
+      let monthlyRow = null;
+      for (const m of matchingRows) {
+        // 13期月別の特徴:N列(13)に合計値があり、I列(8)に名前がない(空文字)
+        const colN = extractCellNum(m.row, 13);
+        const colI = getCellValue(m.row, 8);
+        const colA1B = extractCellNum(m.row, 1); // B列が「12月」の値
+        // KPI行と区別:KPIではI列にも名前がある(I列の値が targetName と一致)
+        const isKpi = (colI && String(colI).trim() === targetName);
+        // 14期売上行との区別:14期はAA列(26)に合計、N列はラベルではなく日次データ
+        // 13期月別の確実な特徴:N列に合計値があり、I列に名前がない
+        if (!isKpi && colN > 0) {
+          monthlyRow = m.row;
+          break;
+        }
+      }
       if (monthlyRow && monthCol != null) {
         monthlyDecision = extractCellNum(monthlyRow, monthCol);
       }
       u.monthlyDecision = monthlyDecision;
       u.currentMonth = currentMonth;
 
-      // ③ 14期売上(合計はAA列 = 列index 26):95〜115行目あたりから名前で検索
+      // ③ 14期売上行を特定:AA列(index 26)に合計があり、AB列(index 27)にも名前がある
       let period14Sales = 0;
       let hasPeriod14 = false;
-      const period14Row = findRowByName(rows, targetName, 95, 115, 0);
-      if (period14Row) {
-        period14Sales = extractCellNum(period14Row, 26);
-        hasPeriod14 = true;
+      for (const m of matchingRows) {
+        const colAA = extractCellNum(m.row, 26);
+        const colAB = getCellValue(m.row, 27);
+        // 14期売上の特徴:AB列(27)にも同じ名前が記載されている
+        if (colAB && String(colAB).trim() === targetName) {
+          period14Sales = colAA;
+          hasPeriod14 = true;
+          break;
+        }
       }
       u.period14Sales = period14Sales;
       u.hasPeriod14 = hasPeriod14;
@@ -2161,16 +2206,22 @@ const MOTIVATION_MESSAGES = [
     } catch (e) {
       console.error('Sheet fetch error:', e);
       renderKPIError(e.message);
-      renderCoach(); // フォールバックで WEEKLY_CONFIG のメッセージ
+      renderCoach();
     }
   }
 
-  // 指定された範囲内で、A列(0列目)が targetName と一致する行を探す
-  // startRow と endRow は スプレッドシート上の行番号(1始まり)
+  // セルから生の値を取り出すヘルパー
+  function getCellValue(row, colIndex) {
+    if (!row || !row.c) return null;
+    const cell = row.c[colIndex];
+    if (!cell) return null;
+    return cell.v != null ? cell.v : (cell.f != null ? cell.f : null);
+  }
+
+  // 指定された範囲内で、A列(0列目)が targetName と一致する行を探す(後方互換用・現在未使用)
   function findRowByName(rows, targetName, startRow, endRow, nameColIndex) {
     if (!targetName) return null;
     const target = String(targetName).trim();
-    // range=A1: から取得しているので rows[N] = (N+1)行目に対応
     const startIdx = Math.max(0, startRow - 1);
     const endIdx = Math.min(rows.length - 1, endRow - 1);
     for (let i = startIdx; i <= endIdx; i++) {
@@ -2179,7 +2230,6 @@ const MOTIVATION_MESSAGES = [
       const cell = row.c[nameColIndex];
       if (!cell) continue;
       const val = cell.v != null ? String(cell.v).trim() : (cell.f != null ? String(cell.f).trim() : '');
-      // 「山口」と「古口」のような部分一致誤検出を避けるため、完全一致で照合
       if (val === target) return row;
     }
     return null;
@@ -2307,10 +2357,14 @@ const MOTIVATION_MESSAGES = [
     `;
   }
 
-  // コーチメッセージ(達成率に応じて自動切替)
+  // コーチメッセージ(KPI取得完了後に自動アドバイス読み込み)
   function renderCoachFromAchievement(u) {
-    // 個人別データが取れたら、初期状態(更新ボタンで生成可能)を表示
+    // まずはローディング/案内を出す
     renderAdviceShell({ state: 'initial' });
+    // ToDo取得が並行で走っているので、1.5秒待ってから生成(キャッシュがあれば即時)
+    setTimeout(() => {
+      tryAutoLoadAdvice();
+    }, 1500);
   }
 
   // === 旧:WEEKLY_CONFIG由来のユーザーアバター(URLなし時のフォールバック用) ===
@@ -2380,13 +2434,72 @@ const MOTIVATION_MESSAGES = [
     `;
   }
 
-  // ② 今日のアドバイス(AI生成)
+  // ② 今日のアドバイス(AI生成、1日1回キャッシュ)
   function renderCoach() {
-    renderAdviceShell({ state: 'initial' });
+    // 起動時:キャッシュがあれば表示。なければ自動生成を試みる
+    tryAutoLoadAdvice();
+  }
+
+  // ── キャッシュキー(日付ベース)──
+  const ADVICE_CACHE_PREFIX = 'connect_studio_advice_';
+  function todayKey() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+  function getCachedAdvice(userKey) {
+    try {
+      const raw = localStorage.getItem(ADVICE_CACHE_PREFIX + (userKey || 'default'));
+      if (!raw) return null;
+      const obj = JSON.parse(raw);
+      if (obj && obj.date === todayKey() && Array.isArray(obj.advices)) {
+        return obj.advices;
+      }
+    } catch {}
+    return null;
+  }
+  function saveCachedAdvice(userKey, advices) {
+    try {
+      localStorage.setItem(
+        ADVICE_CACHE_PREFIX + (userKey || 'default'),
+        JSON.stringify({ date: todayKey(), advices })
+      );
+    } catch {}
+  }
+
+  // ── 自動読み込み:キャッシュがあれば即表示、なければ生成試行 ──
+  async function tryAutoLoadAdvice() {
+    const userKey = CURRENT_USER_KEY || 'default';
+    const cached = getCachedAdvice(userKey);
+    if (cached) {
+      renderAdviceShell({ state: 'loaded', advices: cached });
+      return;
+    }
+
+    // APIキーがあるか確認
+    const apiKey = (typeof getApiKey === 'function') ? getApiKey() : '';
+    if (!apiKey) {
+      // 未設定なら静かに案内のみ
+      renderAdviceShell({ state: 'no-api-key' });
+      return;
+    }
+
+    // 自動生成を実行(初回 or 日付が変わった)
+    renderAdviceShell({ state: 'loading' });
+    try {
+      const advices = await generateAdvices(apiKey);
+      saveCachedAdvice(userKey, advices);
+      renderAdviceShell({ state: 'loaded', advices });
+    } catch (e) {
+      console.error('Advice generation error:', e);
+      renderAdviceShell({ state: 'error', errorMsg: e.message || String(e) });
+    }
   }
 
   // ── アドバイスUIのレンダラー(状態別) ──
-  // state: 'initial' | 'loading' | 'loaded' | 'error' | 'no-user'
+  // state: 'initial' | 'loading' | 'loaded' | 'error' | 'no-user' | 'no-api-key'
   function renderAdviceShell({ state, advices, errorMsg }) {
     const c = document.getElementById('coach-container');
     if (!c) return;
@@ -2396,9 +2509,10 @@ const MOTIVATION_MESSAGES = [
         <p class="advice-title">✨ 今日のアドバイス</p>
         <button class="advice-refresh ${state === 'loading' ? 'loading' : ''}"
                 onclick="refreshAdvice()"
+                title="アドバイスを再生成します"
                 ${state === 'loading' ? 'disabled' : ''}>
           <span class="advice-refresh-icon">🔄</span>
-          <span>${state === 'loading' ? '生成中…' : '更新'}</span>
+          <span>${state === 'loading' ? '生成中…' : '再生成'}</span>
         </button>
       </div>
     `;
@@ -2410,12 +2524,18 @@ const MOTIVATION_MESSAGES = [
           ユーザーIDが指定されると、<br><strong>あなた専用</strong>のアドバイスが表示されます。
         </div>
       `;
+    } else if (state === 'no-api-key') {
+      bodyHtml = `
+        <div class="advice-empty">
+          右上の <strong>⚙ 設定</strong> から<br>
+          Claude APIキーを登録すると、<br>
+          <strong>毎日のアドバイスを自動表示</strong>します。
+        </div>
+      `;
     } else if (state === 'initial') {
       bodyHtml = `
         <div class="advice-empty">
-          右上の <strong>「🔄 更新」</strong> を押すと、<br>
-          今のKPI・曜日・時刻をもとに<br>
-          <strong>今日のアドバイスを3つ</strong>生成します。
+          アドバイスを準備しています…
         </div>
       `;
     } else if (state === 'loading') {
@@ -2447,7 +2567,7 @@ const MOTIVATION_MESSAGES = [
     c.innerHTML = headerHtml + bodyHtml;
   }
 
-  // ── 更新ボタンから呼ばれる:Claude API で3つのアドバイスを生成 ──
+  // ── 再生成ボタンから呼ばれる:強制的に新しいアドバイスを生成 ──
   async function refreshAdvice() {
     const apiKey = (typeof getApiKey === 'function') ? getApiKey() : '';
     if (!apiKey) {
@@ -2462,6 +2582,8 @@ const MOTIVATION_MESSAGES = [
 
     try {
       const advices = await generateAdvices(apiKey);
+      // 再生成も同日キャッシュとして上書き保存
+      saveCachedAdvice(CURRENT_USER_KEY || 'default', advices);
       renderAdviceShell({ state: 'loaded', advices });
     } catch (e) {
       console.error('Advice generation error:', e);
@@ -2472,10 +2594,6 @@ const MOTIVATION_MESSAGES = [
   // ── Claude API を呼んで 3 つのアドバイスを JSON で受け取る ──
   async function generateAdvices(apiKey) {
     // 文脈情報を組み立て
-    const k = WEEKLY_CONFIG.kpi || {};
-    const talks = k.talks || { current: 0, target: 0 };
-    const contracts = k.contracts || { current: 0, target: 0 };
-    const sales = k.sales || { current: 0, target: 0 };
     const userName = (CURRENT_USER && CURRENT_USER.name) || WEEKLY_CONFIG.userName || '担当者';
 
     const now = new Date();
@@ -2486,32 +2604,72 @@ const MOTIVATION_MESSAGES = [
     if (hour >= 12 && hour < 17) timeOfDay = '昼';
     else if (hour >= 17) timeOfDay = '夕方';
 
-    // 個人データがあれば優先、なければ WEEKLY_CONFIG
-    let achievementRate = '';
-    if (CURRENT_USER && typeof CURRENT_USER.rate !== 'undefined') {
-      achievementRate = `売上達成率 ${normalizeRateToPercent(CURRENT_USER.rate).toFixed(1)}%`;
-    } else if (sales.target > 0) {
-      achievementRate = `売上達成率 ${Math.round((sales.current / sales.target) * 100)}%`;
+    // 営業進捗(スプレッドシート優先、なければ WEEKLY_CONFIG)
+    const kpiLines = [];
+    if (CURRENT_USER) {
+      const u = CURRENT_USER;
+      const fmt = (n) => (n == null || isNaN(n)) ? '0' : Math.round(n).toLocaleString('ja-JP');
+      const ratePct = normalizeRateToPercent(u.rate);
+      const decRatePct = normalizeRateToPercent(u.decisionRate);
+      kpiLines.push(`売上達成率: ${ratePct.toFixed(1)}%`);
+      kpiLines.push(`今期売上: ${fmt(u.sales)}円`);
+      kpiLines.push(`売上目標: ${fmt(u.budget)}円`);
+      if (u.budget > u.sales) {
+        kpiLines.push(`目標まで残り: ${fmt(u.budget - u.sales)}円`);
+      }
+      kpiLines.push(`常勤売上: ${fmt(u.fullSales)}円 / 非常勤売上: ${fmt(u.partSales)}円`);
+      kpiLines.push(`常勤問合せ数: ${u.fullInq}件 / 非常勤問合せ数: ${u.partInq}件`);
+      kpiLines.push(`面接数: ${u.interviews}件 / 決定数: ${u.decisions}件`);
+      kpiLines.push(`決定率: ${decRatePct.toFixed(1)}%`);
+      if (u.monthlyDecision != null) {
+        kpiLines.push(`今月(${u.currentMonth}月)の決定金額: ${fmt(u.monthlyDecision)}円`);
+      }
+      if (u.hasPeriod14) {
+        kpiLines.push(`14期売上(次期積み上げ): ${fmt(u.period14Sales)}円`);
+      }
+    } else {
+      const k = WEEKLY_CONFIG.kpi || {};
+      const talks = k.talks || { current: 0, target: 0 };
+      const contracts = k.contracts || { current: 0, target: 0 };
+      const sales = k.sales || { current: 0, target: 0 };
+      kpiLines.push(`商談数: ${talks.current}/${talks.target}`);
+      kpiLines.push(`成約数: ${contracts.current}/${contracts.target}`);
+      kpiLines.push(`売上: ${sales.current}/${sales.target} 万円`);
+      kpiLines.push(`前月比: ${k.momChange || '不明'}`);
     }
+
+    // 本日のToDo(Todoist連携)
+    const todoLines = [];
+    const events = state.todayEvents || [];
+    if (events.length > 0) {
+      events.slice(0, 10).forEach((ev) => {
+        const title = (ev.summary || ev.title || '').trim();
+        const time = ev.startTime ? ` (${ev.startTime})` : '';
+        if (title) todoLines.push(`- ${title}${time}`);
+      });
+    }
+    const todoBlock = todoLines.length > 0
+      ? `\n\n【本日のToDo / 予定】\n${todoLines.join('\n')}`
+      : `\n\n【本日のToDo / 予定】\n(本日のToDoはありません)`;
 
     const ctx = [
       `担当者: ${userName}さん`,
       `日付: ${dateStr} / 時間帯: ${timeOfDay}`,
-      `商談数: ${talks.current}/${talks.target}`,
-      `成約数: ${contracts.current}/${contracts.target}`,
-      `売上: ${sales.current}/${sales.target} 万円`,
-      achievementRate,
-      `前月比: ${k.momChange || '不明'}`,
-    ].filter(Boolean).join('\n');
+      ``,
+      `【営業進捗】`,
+      ...kpiLines,
+    ].join('\n') + todoBlock;
 
     const systemPrompt = `あなたはCONNECT Studioの専属AIコーチです。営業担当者を支える、温かくて具体的なパートナーです。
 
 担当者の今の状況を踏まえて、本日のアドバイスを3つ生成してください。それぞれ:
-1. 「動き方」— 今日この時間帯にどう動くか(具体的な行動の提案)
-2. 「重点」— 何に集中するか(優先順位の整理)
+1. 「動き方」— 今日この時間帯にどう動くか(具体的な行動の提案、ToDoがあればそれを踏まえる)
+2. 「重点」— 何に集中するか(KPIの数字から見て、今最優先で取り組むべきこと)
 3. 「振り返り」— 今期/今までを踏まえた気づきや励まし
 
 各アドバイスは70〜100文字程度、です・ます調、押しつけがましくない、温度のある表現で。
+数字は具体的に引用しても構いません。ToDoがある場合はそれを意識した提案を入れてください。
+
 必ず以下のJSON形式のみで返答してください(前後の説明文は一切不要):
 
 {"advices":[{"label":"動き方","text":"..."},{"label":"重点","text":"..."},{"label":"振り返り","text":"..."}]}`;
