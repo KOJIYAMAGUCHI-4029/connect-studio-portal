@@ -897,14 +897,7 @@ const MOTIVATION_MESSAGES = [
   .caption strong { color: #2C2C2A; }
 </style>
 <script src="/connect-studio/auto-user-redirect.js"></script>
-...既存のCSSやscriptが並ぶ...
-  <!-- ════════════ CONNECT Studio v14 / 青テーマ オーバーライド ════════════ -->
-  <style id="blue-theme-override">
-    ...青テーマのCSS...
-  </style>
-  <!-- ════════════ ここまでが v14 ════════════ -->
-  </head>      ← 元からあるこの行は触らない
-</head>
+  </head>
 <body>
 
 <div class="frame">
@@ -918,7 +911,7 @@ const MOTIVATION_MESSAGES = [
       </div>
     </div>
     <div class="top-right">
-      <span class="date">2026.04.27 月</span>
+      <span class="date" id="today-date">2026.04.27 月</span>
       <button class="settings-trigger" onclick="openSettings()">⚙ 設定</button>
       <div class="avatar" id="user-avatar">YK</div>
     </div>
@@ -1272,8 +1265,8 @@ const MOTIVATION_MESSAGES = [
       <!-- ② AIコーチ -->
       <div id="coach-container"></div>
 
-      <!-- ③ 今週のフォーカス -->
-      <div id="focus-container"></div>
+      <!-- ③ 今週のフォーカス(一旦非表示) -->
+      <!-- <div id="focus-container"></div> -->
 
       <!-- ④ TODAY'S NOTE -->
       <div id="note-container"></div>
@@ -2520,7 +2513,20 @@ const MOTIVATION_MESSAGES = [
     }
   }
 
+  // 今日の日付を表示(常に最新)
+  function updateTodayDate() {
+    const el = document.getElementById('today-date');
+    if (!el) return;
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+    el.textContent = `${y}.${m}.${day} ${weekdays[d.getDay()]}`;
+  }
+
   // 初期化
+  updateTodayDate();
   renderWeeklyConfig();
   updateMailBadge();
   renderMail();
